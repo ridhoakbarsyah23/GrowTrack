@@ -20,6 +20,7 @@ Route::post('/logout', [AuthController::class, 'logout']);
 Route::get('/career-dashboard', CareerDashboardController::class);
 Route::get('/orders/my', [CommerceController::class, 'myOrders']);
 Route::post('/orders', [CommerceController::class, 'createOrder']);
+Route::post('/payments/midtrans/notification', [CommerceController::class, 'midtransNotification']);
 Route::get('/assessment/current', [AssessmentController::class, 'current']);
 Route::post('/assessment/submit', [AssessmentController::class, 'submit']);
 
