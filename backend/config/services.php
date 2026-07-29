@@ -22,6 +22,14 @@ return [
         'key' => env('RESEND_API_KEY'),
     ],
 
+    'midtrans' => [
+        'enabled' => env('MIDTRANS_ENABLED', false),
+        'environment' => env('MIDTRANS_ENV', 'sandbox'),
+        'server_key' => env('MIDTRANS_SERVER_KEY'),
+        'client_key' => env('MIDTRANS_CLIENT_KEY'),
+        'finish_url' => env('MIDTRANS_FINISH_URL'),
+    ],
+
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),

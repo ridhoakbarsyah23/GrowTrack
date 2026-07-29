@@ -37,6 +37,14 @@ GET http://127.0.0.1:8000/api/career-dashboard
 GET http://127.0.0.1:8000/api/public-summary
 GET http://127.0.0.1:8000/api/assessment/current
 POST http://127.0.0.1:8000/api/assessment/submit
+PATCH http://127.0.0.1:8000/api/roadmap-progress/{progress}
+POST http://127.0.0.1:8000/api/project-submissions
+GET http://127.0.0.1:8000/api/project-submissions/review-queue
+PATCH http://127.0.0.1:8000/api/project-submissions/{submission}/review
+GET http://127.0.0.1:8000/api/mentor-feedback
+POST http://127.0.0.1:8000/api/mentor-feedback
+PATCH http://127.0.0.1:8000/api/mentor-feedback/{feedback}
+DELETE http://127.0.0.1:8000/api/mentor-feedback/{feedback}
 ```
 
 Endpoint auth:
@@ -57,11 +65,26 @@ Endpoint admin untuk input data asli:
 GET  http://127.0.0.1:8000/api/admin/bootstrap
 POST http://127.0.0.1:8000/api/admin/users
 POST http://127.0.0.1:8000/api/admin/career-goals
+PATCH http://127.0.0.1:8000/api/admin/career-goals/{careerGoal}
+DELETE http://127.0.0.1:8000/api/admin/career-goals/{careerGoal}
 POST http://127.0.0.1:8000/api/admin/skills
+PATCH http://127.0.0.1:8000/api/admin/skills/{skill}
+DELETE http://127.0.0.1:8000/api/admin/skills/{skill}
 POST http://127.0.0.1:8000/api/admin/assessment-templates
+PATCH http://127.0.0.1:8000/api/admin/assessment-templates/{assessmentTemplate}
+DELETE http://127.0.0.1:8000/api/admin/assessment-templates/{assessmentTemplate}
 POST http://127.0.0.1:8000/api/admin/roadmap-modules
+PATCH http://127.0.0.1:8000/api/admin/roadmap-modules/{roadmapModule}
+DELETE http://127.0.0.1:8000/api/admin/roadmap-modules/{roadmapModule}
 POST http://127.0.0.1:8000/api/admin/skill-targets
+PATCH http://127.0.0.1:8000/api/admin/skill-targets/{skillTarget}
+DELETE http://127.0.0.1:8000/api/admin/skill-targets/{skillTarget}
 POST http://127.0.0.1:8000/api/admin/assessment-questions
+PATCH http://127.0.0.1:8000/api/admin/assessment-questions/{assessmentQuestion}
+DELETE http://127.0.0.1:8000/api/admin/assessment-questions/{assessmentQuestion}
+POST http://127.0.0.1:8000/api/admin/products
+PATCH http://127.0.0.1:8000/api/admin/products/{product}
+DELETE http://127.0.0.1:8000/api/admin/products/{product}
 ```
 
 `/api/career-dashboard` membutuhkan header:
@@ -141,6 +164,11 @@ Admin masuk ke halaman input data:
 
 ```text
 http://localhost:3000/admin
+http://localhost:3000/admin/evidence
+http://localhost:3000/admin/mentor-feedback
+http://localhost:3000/admin/products
+http://localhost:3000/evidence-review
+http://localhost:3000/mentor-feedback
 ```
 
 ## Akun Awal

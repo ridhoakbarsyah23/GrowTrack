@@ -68,6 +68,7 @@ class CareerDashboardController extends Controller
             ->leftJoin('mentor_feedback', 'mentor_feedback.user_profile_id', '=', 'user_profiles.id')
             ->select([
                 'user_profiles.id',
+                'user_profiles.career_goal_id',
                 'users.name',
                 'users.email',
                 'user_profiles.role',
@@ -114,10 +115,14 @@ class CareerDashboardController extends Controller
 
     private function buildProfile(object $profile): array
     {
+        $this->ensureRoadmapProgress($profile);
+
         $progress = DB::table('roadmap_progress')
             ->join('roadmap_modules', 'roadmap_modules.id', '=', 'roadmap_progress.roadmap_module_id')
             ->where('roadmap_progress.user_profile_id', $profile->id)
             ->select([
+                'roadmap_progress.id',
+                'roadmap_progress.roadmap_module_id',
                 'roadmap_modules.title',
                 'roadmap_modules.module_type',
                 'roadmap_modules.duration_hours',
@@ -132,12 +137,16 @@ class CareerDashboardController extends Controller
             ->join('roadmap_modules', 'roadmap_modules.id', '=', 'project_submissions.roadmap_module_id')
             ->where('project_submissions.user_profile_id', $profile->id)
             ->select([
+                'project_submissions.id',
+                'project_submissions.roadmap_module_id',
                 'project_submissions.title',
                 'roadmap_modules.title as module_title',
                 'project_submissions.description',
                 'project_submissions.status',
                 'project_submissions.score',
+                'project_submissions.created_at',
             ])
+            ->orderByDesc('project_submissions.created_at')
             ->get();
 
         $skillScores = collect(json_decode($profile->skill_scores ?: '{}', true));
@@ -209,6 +218,32 @@ class CareerDashboardController extends Controller
             $score >= 60 => 'Perlu development',
             default => 'Belum siap',
         };
+    }
+
+    private function ensureRoadmapProgress(object $profile): void
+    {
+        $now = now();
+        $existingModuleIds = DB::table('roadmap_progress')
+            ->where('user_profile_id', $profile->id)
+            ->pluck('roadmap_module_id')
+            ->all();
+
+        $modules = DB::table('roadmap_modules')
+            ->where('career_goal_id', $profile->career_goal_id)
+            ->whereNotIn('id', $existingModuleIds)
+            ->get(['id']);
+
+        foreach ($modules as $module) {
+            DB::table('roadmap_progress')->insert([
+                'user_profile_id' => $profile->id,
+                'roadmap_module_id' => $module->id,
+                'status' => 'not_started',
+                'progress_percent' => 0,
+                'due_date' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
     }
 
     private function highestGap(Collection $users): ?array
