@@ -257,6 +257,68 @@ class CommerceController extends Controller
         return response()->json(['message' => 'Status order berhasil diperbarui.']);
     }
 
+    public function createProduct(Request $request)
+    {
+        $validated = $this->validateProduct($request);
+
+        $id = DB::table('learning_products')->insertGetId([
+            ...$validated,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Produk berhasil dibuat.',
+            'product' => $this->productPayload(DB::table('learning_products')->where('id', $id)->first()),
+        ], Response::HTTP_CREATED);
+    }
+
+    public function updateProduct(Request $request, int $product)
+    {
+        $record = DB::table('learning_products')->where('id', $product)->first();
+
+        if (! $record) {
+            return response()->json(['message' => 'Produk tidak ditemukan.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $validated = $this->validateProduct($request, $product);
+
+        DB::table('learning_products')
+            ->where('id', $product)
+            ->update([
+                ...$validated,
+                'updated_at' => now(),
+            ]);
+
+        return response()->json([
+            'message' => 'Produk berhasil diperbarui.',
+            'product' => $this->productPayload(DB::table('learning_products')->where('id', $product)->first()),
+        ]);
+    }
+
+    public function deleteProduct(int $product)
+    {
+        $record = DB::table('learning_products')->where('id', $product)->first();
+
+        if (! $record) {
+            return response()->json(['message' => 'Produk tidak ditemukan.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $hasOrders = DB::table('learning_orders')
+            ->where('learning_product_id', $product)
+            ->exists();
+
+        if ($hasOrders) {
+            return response()->json([
+                'message' => 'Produk sudah memiliki order. Ubah status menjadi inactive agar riwayat transaksi tetap aman.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        DB::table('learning_products')->where('id', $product)->delete();
+
+        return response()->json(['message' => 'Produk berhasil dihapus.']);
+    }
+
     public function midtransNotification(Request $request)
     {
         if (! $this->midtransEnabled()) {
@@ -424,5 +486,93 @@ class CommerceController extends Controller
         return config('services.midtrans.environment') === 'production'
             ? 'https://app.midtrans.com/snap/v1/transactions'
             : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
+    }
+
+    private function validateProduct(Request $request, ?int $productId = null): array
+    {
+        $validated = $request->validate([
+            'type' => ['required', Rule::in(['course', 'webinar'])],
+            'title' => ['required', 'string', 'max:255'],
+            'slug' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique('learning_products', 'slug')->ignore($productId),
+            ],
+            'category' => ['required', 'string', 'max:255'],
+            'level' => ['nullable', 'string', 'max:255'],
+            'price' => ['required', 'integer', 'min:0'],
+            'description' => ['required', 'string'],
+            'outcome' => ['required', 'string'],
+            'lesson_count' => ['nullable', 'integer', 'min:0', 'max:255'],
+            'duration' => ['nullable', 'string', 'max:255'],
+            'scheduled_at' => ['nullable', 'date'],
+            'seat_limit' => ['nullable', 'integer', 'min:1'],
+            'meeting_url' => ['nullable', 'url', 'max:255'],
+            'material_url' => ['nullable', 'url', 'max:255'],
+            'status' => ['required', Rule::in(['active', 'inactive'])],
+        ]);
+
+        $validated['slug'] = filled($validated['slug'] ?? null)
+            ? Str::slug($validated['slug'])
+            : Str::slug($validated['title']);
+
+        if (! $validated['slug']) {
+            $validated['slug'] = Str::lower(Str::random(8));
+        }
+
+        $slugExists = DB::table('learning_products')
+            ->where('slug', $validated['slug'])
+            ->when($productId, fn ($query) => $query->where('id', '!=', $productId))
+            ->exists();
+
+        if ($slugExists) {
+            abort(response()->json([
+                'message' => 'Slug produk sudah digunakan.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY));
+        }
+
+        if ($validated['type'] === 'course') {
+            $validated['scheduled_at'] = null;
+            $validated['seat_limit'] = null;
+            $validated['meeting_url'] = null;
+        }
+
+        if ($validated['type'] === 'webinar') {
+            $validated['lesson_count'] = $validated['lesson_count'] ?? 1;
+            $validated['material_url'] = null;
+        }
+
+        $validated['level'] = $validated['level'] ?? null;
+        $validated['lesson_count'] = $validated['lesson_count'] ?? 0;
+        $validated['duration'] = $validated['duration'] ?? null;
+        $validated['scheduled_at'] = $validated['scheduled_at'] ?? null;
+        $validated['seat_limit'] = $validated['seat_limit'] ?? null;
+        $validated['meeting_url'] = $validated['meeting_url'] ?? null;
+        $validated['material_url'] = $validated['material_url'] ?? null;
+
+        return $validated;
+    }
+
+    private function productPayload(object $product): array
+    {
+        return [
+            'id' => $product->id,
+            'type' => $product->type,
+            'title' => $product->title,
+            'slug' => $product->slug,
+            'category' => $product->category,
+            'level' => $product->level,
+            'price' => $product->price,
+            'description' => $product->description,
+            'outcome' => $product->outcome,
+            'lesson_count' => $product->lesson_count,
+            'duration' => $product->duration,
+            'scheduled_at' => $product->scheduled_at,
+            'seat_limit' => $product->seat_limit,
+            'meeting_url' => $product->meeting_url,
+            'material_url' => $product->material_url,
+            'status' => $product->status,
+        ];
     }
 }

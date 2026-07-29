@@ -24,16 +24,92 @@ export type AdminData = {
   users: Array<{ id: number; name: string; email: string; role: string }>;
   career_goals: CareerGoal[];
   skills: Array<{ id: number; name: string; category: string; description: string }>;
-  assessment_templates: Array<{ id: number; title: string; audience: string; question_count: number }>;
-  roadmap_modules: Array<{ id: number; title: string; career_goal: string; sequence: number }>;
-  skill_targets: Array<{ id: number; career_goal: string; skill: string; target_score: number }>;
+  assessment_templates: Array<{ id: number; title: string; audience: string; description: string; question_count: number }>;
+  roadmap_modules: Array<{
+    id: number;
+    career_goal_id: number;
+    title: string;
+    career_goal: string;
+    sequence: number;
+    module_type: string;
+    duration_hours: number;
+    outcome: string;
+  }>;
+  skill_targets: Array<{
+    id: number;
+    career_goal_id: number;
+    skill_id: number;
+    career_goal: string;
+    skill: string;
+    target_score: number;
+  }>;
   assessment_questions: Array<{
     id: number;
+    assessment_template_id: number;
+    skill_id: number;
     assessment_template: string;
     skill: string;
     question: string;
     weight: number;
     max_score: number;
+  }>;
+  learning_products: Array<{
+    id: number;
+    type: "course" | "webinar";
+    title: string;
+    slug: string;
+    category: string;
+    level: string | null;
+    price: number;
+    description: string;
+    outcome: string;
+    lesson_count: number;
+    duration: string | null;
+    scheduled_at: string | null;
+    seat_limit: number | null;
+    meeting_url: string | null;
+    material_url: string | null;
+    status: "active" | "inactive";
+    created_at: string;
+  }>;
+  project_submissions: Array<{
+    id: number;
+    user_profile_id: number;
+    roadmap_module_id: number;
+    title: string;
+    description: string;
+    status: "submitted" | "reviewed" | "revision_needed";
+    score: number | null;
+    review_notes: string | null;
+    reviewed_at: string | null;
+    created_at: string;
+    learner_name: string;
+    learner_email: string;
+    career_goal: string;
+    module_title: string;
+    reviewer_name: string | null;
+  }>;
+  user_profiles: Array<{
+    id: number;
+    name: string;
+    email: string;
+    role: "employee" | "fresh_graduate";
+    current_position: string | null;
+    target_position: string;
+    career_goal: string;
+  }>;
+  mentor_feedback: Array<{
+    id: number;
+    user_profile_id: number;
+    mentor_id: number;
+    recommendation: string;
+    score: number;
+    notes: string;
+    updated_at: string;
+    learner_name: string;
+    learner_email: string;
+    career_goal: string;
+    mentor_name: string;
   }>;
 };
 
@@ -45,6 +121,10 @@ export const emptyAdminData: AdminData = {
   roadmap_modules: [],
   skill_targets: [],
   assessment_questions: [],
+  learning_products: [],
+  project_submissions: [],
+  user_profiles: [],
+  mentor_feedback: [],
 };
 
 export function useAdminData() {
@@ -172,45 +252,48 @@ export function AdminShell({
   }
 
   return (
-    <main className="min-h-screen bg-brand-surface text-brand-text">
+    <main className="min-h-screen bg-brand-panel-soft text-brand-text">
       <div className="mx-auto grid max-w-7xl gap-5 px-5 py-6 lg:grid-cols-[240px_1fr]">
-        <aside className="animate-admin-enter rounded-lg border border-brand-border bg-white p-4 lg:sticky lg:top-6 lg:h-[calc(100vh-48px)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">
-            Admin
+        <aside className="animate-admin-enter rounded-lg border border-brand-primary-deep bg-brand-text p-4 text-white shadow-md lg:sticky lg:top-6 lg:h-[calc(100vh-48px)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-border">
+            Admin Console
           </p>
           <h1 className="mt-2 text-2xl font-semibold">GrowTrack</h1>
-          <p className="mt-2 text-sm leading-5 text-brand-primary-dark">
-            Pusat kontrol data career goal, assessment, roadmap, dan user.
+          <p className="mt-2 text-sm leading-5 text-white/70">
+            Area operasional untuk data, user, catalog, review evidence, dan mentor feedback.
           </p>
           <nav className="mt-6 grid gap-2 text-sm font-medium">
             <AdminNavLink href="/admin" active={pathname === "/admin"}>Overview</AdminNavLink>
             <AdminNavLink href="/admin/master-data" active={pathname === "/admin/master-data"}>Master Data</AdminNavLink>
             <AdminNavLink href="/admin/assessment-setup" active={pathname === "/admin/assessment-setup"}>Assessment Setup</AdminNavLink>
+            <AdminNavLink href="/admin/products" active={pathname === "/admin/products"}>Products</AdminNavLink>
+            <AdminNavLink href="/admin/evidence" active={pathname === "/admin/evidence"}>Evidence</AdminNavLink>
+            <AdminNavLink href="/admin/mentor-feedback" active={pathname === "/admin/mentor-feedback"}>Mentor Feedback</AdminNavLink>
             <AdminNavLink href="/admin/users" active={pathname === "/admin/users"}>Users</AdminNavLink>
             <AdminNavLink href="/admin/orders" active={pathname === "/admin/orders"}>Orders</AdminNavLink>
             <AdminNavLink href="/admin/preview" active={pathname === "/admin/preview"}>Preview Data</AdminNavLink>
-            <Link className="rounded-md px-3 py-2 text-brand-muted transition hover:-translate-y-0.5 hover:bg-brand-surface-strong active:translate-y-0 active:scale-[0.98]" href="/dashboard">
-              Dashboard
+            <Link className="rounded-md px-3 py-2 text-white/70 transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-white active:translate-y-0 active:scale-[0.98]" href="/dashboard">
+              User Dashboard
             </Link>
           </nav>
           <button
             type="button"
             onClick={onRefresh}
-            className="mt-6 h-10 w-full rounded-md border border-brand-border-strong text-sm font-semibold text-brand-primary-dark transition hover:-translate-y-0.5 hover:bg-brand-surface-strong active:translate-y-0 active:scale-[0.98]"
+            className="mt-6 h-10 w-full rounded-md border border-white/20 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/10 active:translate-y-0 active:scale-[0.98]"
           >
             Refresh
           </button>
           <button
             type="button"
             onClick={() => setLogoutOpen(true)}
-            className="mt-3 h-10 w-full rounded-md bg-brand-primary-dark text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-brand-primary-deep active:translate-y-0 active:scale-[0.98]"
+            className="mt-3 h-10 w-full rounded-md bg-white text-sm font-semibold text-brand-primary-dark transition hover:-translate-y-0.5 hover:bg-brand-surface-strong active:translate-y-0 active:scale-[0.98]"
           >
             Logout
           </button>
         </aside>
 
         <div className="animate-admin-enter [animation-delay:80ms]">
-          <header className="rounded-lg border border-brand-border bg-brand-surface-strong p-5">
+          <header className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">
               {eyebrow}
             </p>
@@ -218,13 +301,16 @@ export function AdminShell({
               {title}
             </h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-brand-muted">{body}</p>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-9">
               <Metric label="Users" value={data.users.length} />
               <Metric label="Goals" value={data.career_goals.length} />
               <Metric label="Skills" value={data.skills.length} />
               <Metric label="Roadmap" value={data.roadmap_modules.length} />
               <Metric label="Targets" value={data.skill_targets.length} />
               <Metric label="Questions" value={data.assessment_questions.length} />
+              <Metric label="Products" value={data.learning_products.length} />
+              <Metric label="Evidence" value={data.project_submissions.length} />
+              <Metric label="Feedback" value={data.mentor_feedback.length} />
             </div>
           </header>
 
@@ -261,8 +347,8 @@ export function AdminShell({
 function AdminNavLink({ href, active, children }: { href: string; active: boolean; children: ReactNode }) {
   return (
     <Link
-      className={`rounded-md px-3 py-2 transition hover:-translate-y-0.5 hover:bg-brand-surface-strong active:translate-y-0 active:scale-[0.98] ${
-        active ? "bg-brand-primary-dark text-white shadow-sm" : "text-brand-muted"
+      className={`rounded-md px-3 py-2 transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] ${
+        active ? "bg-white text-brand-primary-dark shadow-sm" : "text-white/70 hover:bg-white/10 hover:text-white"
       }`}
       href={href}
     >
@@ -430,47 +516,71 @@ function ArrowRightIcon() {
   );
 }
 
-export function CareerGoalForm({ onSubmit }: { onSubmit: (payload: Record<string, unknown>) => void }) {
+export function CareerGoalForm({
+  goal,
+  onSubmit,
+}: {
+  goal?: CareerGoal | null;
+  onSubmit: (payload: Record<string, unknown>) => void;
+}) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     onSubmit(Object.fromEntries(form));
-    event.currentTarget.reset();
+
+    if (!goal) {
+      event.currentTarget.reset();
+    }
   }
 
   return (
     <form className="grid gap-3" onSubmit={handleSubmit}>
-      <Select name="audience" required>
+      <Select name="audience" defaultValue={goal?.audience ?? "employee"} required>
         <option value="employee">Karyawan</option>
         <option value="fresh_graduate">Fresh Graduate</option>
       </Select>
-      <Input name="title" placeholder="Nama career goal" required />
-      <Input name="level" placeholder="Level atau track" required />
-      <Textarea name="summary" placeholder="Ringkasan tujuan karir" required />
+      <Input name="title" placeholder="Nama career goal" defaultValue={goal?.title ?? ""} required />
+      <Input name="level" placeholder="Level atau track" defaultValue={goal?.level ?? ""} required />
+      <Textarea name="summary" placeholder="Ringkasan tujuan karir" defaultValue={goal?.summary ?? ""} required />
       <SubmitButton />
     </form>
   );
 }
 
-export function SkillForm({ onSubmit }: { onSubmit: (payload: Record<string, unknown>) => void }) {
+export function SkillForm({
+  skill,
+  onSubmit,
+}: {
+  skill?: AdminData["skills"][number] | null;
+  onSubmit: (payload: Record<string, unknown>) => void;
+}) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     onSubmit(Object.fromEntries(form));
-    event.currentTarget.reset();
+
+    if (!skill) {
+      event.currentTarget.reset();
+    }
   }
 
   return (
     <form className="grid gap-3" onSubmit={handleSubmit}>
-      <Input name="name" placeholder="Nama skill" required />
-      <Input name="category" placeholder="Kategori skill" required />
-      <Textarea name="description" placeholder="Deskripsi skill" required />
+      <Input name="name" placeholder="Nama skill" defaultValue={skill?.name ?? ""} required />
+      <Input name="category" placeholder="Kategori skill" defaultValue={skill?.category ?? ""} required />
+      <Textarea name="description" placeholder="Deskripsi skill" defaultValue={skill?.description ?? ""} required />
       <SubmitButton />
     </form>
   );
 }
 
-export function AssessmentForm({ onSubmit }: { onSubmit: (payload: Record<string, unknown>) => void }) {
+export function AssessmentForm({
+  template,
+  onSubmit,
+}: {
+  template?: AdminData["assessment_templates"][number] | null;
+  onSubmit: (payload: Record<string, unknown>) => void;
+}) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -478,18 +588,21 @@ export function AssessmentForm({ onSubmit }: { onSubmit: (payload: Record<string
       ...Object.fromEntries(form),
       question_count: Number(form.get("question_count")),
     });
-    event.currentTarget.reset();
+
+    if (!template) {
+      event.currentTarget.reset();
+    }
   }
 
   return (
     <form className="grid gap-3" onSubmit={handleSubmit}>
-      <Select name="audience" required>
+      <Select name="audience" defaultValue={template?.audience ?? "employee"} required>
         <option value="employee">Karyawan</option>
         <option value="fresh_graduate">Fresh Graduate</option>
       </Select>
-      <Input name="title" placeholder="Judul assessment" required />
-      <Input name="question_count" placeholder="Jumlah pertanyaan" type="number" min="1" required />
-      <Textarea name="description" placeholder="Deskripsi assessment" required />
+      <Input name="title" placeholder="Judul assessment" defaultValue={template?.title ?? ""} required />
+      <Input name="question_count" placeholder="Jumlah pertanyaan" type="number" min="1" defaultValue={template?.question_count ?? ""} required />
+      <Textarea name="description" placeholder="Deskripsi assessment" defaultValue={template?.description ?? ""} required />
       <SubmitButton />
     </form>
   );
@@ -497,9 +610,11 @@ export function AssessmentForm({ onSubmit }: { onSubmit: (payload: Record<string
 
 export function RoadmapForm({
   goals,
+  module,
   onSubmit,
 }: {
   goals: CareerGoal[];
+  module?: AdminData["roadmap_modules"][number] | null;
   onSubmit: (payload: Record<string, unknown>) => void;
 }) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -511,12 +626,15 @@ export function RoadmapForm({
       sequence: Number(form.get("sequence")),
       duration_hours: Number(form.get("duration_hours")),
     });
-    event.currentTarget.reset();
+
+    if (!module) {
+      event.currentTarget.reset();
+    }
   }
 
   return (
     <form className="grid gap-3" onSubmit={handleSubmit}>
-      <Select name="career_goal_id" required>
+      <Select name="career_goal_id" defaultValue={module?.career_goal_id ?? ""} required>
         <option value="">Pilih career goal</option>
         {goals.map((goal) => (
           <option key={goal.id} value={goal.id}>
@@ -524,11 +642,11 @@ export function RoadmapForm({
           </option>
         ))}
       </Select>
-      <Input name="sequence" placeholder="Urutan" type="number" min="1" required />
-      <Input name="title" placeholder="Judul modul" required />
-      <Input name="module_type" placeholder="Tipe modul" required />
-      <Input name="duration_hours" placeholder="Durasi jam" type="number" min="1" required />
-      <Textarea name="outcome" placeholder="Outcome modul" required />
+      <Input name="sequence" placeholder="Urutan" type="number" min="1" defaultValue={module?.sequence ?? ""} required />
+      <Input name="title" placeholder="Judul modul" defaultValue={module?.title ?? ""} required />
+      <Input name="module_type" placeholder="Tipe modul" defaultValue={module?.module_type ?? ""} required />
+      <Input name="duration_hours" placeholder="Durasi jam" type="number" min="1" defaultValue={module?.duration_hours ?? ""} required />
+      <Textarea name="outcome" placeholder="Outcome modul" defaultValue={module?.outcome ?? ""} required />
       <SubmitButton />
     </form>
   );
@@ -603,10 +721,12 @@ export function UserForm({
 export function SkillTargetForm({
   goals,
   skills,
+  target,
   onSubmit,
 }: {
   goals: CareerGoal[];
   skills: AdminData["skills"];
+  target?: AdminData["skill_targets"][number] | null;
   onSubmit: (payload: Record<string, unknown>) => void;
 }) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -617,12 +737,15 @@ export function SkillTargetForm({
       skill_id: Number(form.get("skill_id")),
       target_score: Number(form.get("target_score")),
     });
-    event.currentTarget.reset();
+
+    if (!target) {
+      event.currentTarget.reset();
+    }
   }
 
   return (
     <form className="grid gap-3" onSubmit={handleSubmit}>
-      <Select name="career_goal_id" required>
+      <Select name="career_goal_id" defaultValue={target?.career_goal_id ?? ""} required>
         <option value="">Pilih career goal</option>
         {goals.map((goal) => (
           <option key={goal.id} value={goal.id}>
@@ -630,7 +753,7 @@ export function SkillTargetForm({
           </option>
         ))}
       </Select>
-      <Select name="skill_id" required>
+      <Select name="skill_id" defaultValue={target?.skill_id ?? ""} required>
         <option value="">Pilih skill</option>
         {skills.map((skill) => (
           <option key={skill.id} value={skill.id}>
@@ -638,7 +761,7 @@ export function SkillTargetForm({
           </option>
         ))}
       </Select>
-      <Input name="target_score" placeholder="Target score 1-100" type="number" min="1" max="100" required />
+      <Input name="target_score" placeholder="Target score 1-100" type="number" min="1" max="100" defaultValue={target?.target_score ?? ""} required />
       <SubmitButton />
     </form>
   );
@@ -647,10 +770,12 @@ export function SkillTargetForm({
 export function AssessmentQuestionForm({
   templates,
   skills,
+  question,
   onSubmit,
 }: {
   templates: AdminData["assessment_templates"];
   skills: AdminData["skills"];
+  question?: AdminData["assessment_questions"][number] | null;
   onSubmit: (payload: Record<string, unknown>) => void;
 }) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -663,12 +788,15 @@ export function AssessmentQuestionForm({
       weight: Number(form.get("weight")),
       max_score: Number(form.get("max_score")),
     });
-    event.currentTarget.reset();
+
+    if (!question) {
+      event.currentTarget.reset();
+    }
   }
 
   return (
     <form className="grid gap-3" onSubmit={handleSubmit}>
-      <Select name="assessment_template_id" required>
+      <Select name="assessment_template_id" defaultValue={question?.assessment_template_id ?? ""} required>
         <option value="">Pilih assessment template</option>
         {templates.map((template) => (
           <option key={template.id} value={template.id}>
@@ -676,7 +804,7 @@ export function AssessmentQuestionForm({
           </option>
         ))}
       </Select>
-      <Select name="skill_id" required>
+      <Select name="skill_id" defaultValue={question?.skill_id ?? ""} required>
         <option value="">Pilih skill</option>
         {skills.map((skill) => (
           <option key={skill.id} value={skill.id}>
@@ -684,12 +812,94 @@ export function AssessmentQuestionForm({
           </option>
         ))}
       </Select>
-      <Textarea name="question" placeholder="Tulis pertanyaan assessment" required />
-      <Input name="weight" placeholder="Weight" type="number" min="1" max="10" defaultValue={1} required />
-      <Input name="max_score" placeholder="Max score" type="number" min="1" max="10" defaultValue={5} required />
+      <Textarea name="question" placeholder="Tulis pertanyaan assessment" defaultValue={question?.question ?? ""} required />
+      <Input name="weight" placeholder="Weight" type="number" min="1" max="10" defaultValue={question?.weight ?? 1} required />
+      <Input name="max_score" placeholder="Max score" type="number" min="1" max="10" defaultValue={question?.max_score ?? 5} required />
       <SubmitButton />
     </form>
   );
+}
+
+export function ProductForm({
+  product,
+  onSubmit,
+}: {
+  product?: AdminData["learning_products"][number] | null;
+  onSubmit: (payload: Record<string, unknown>) => void;
+}) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+
+    onSubmit({
+      type: form.get("type"),
+      title: form.get("title"),
+      slug: form.get("slug"),
+      category: form.get("category"),
+      level: emptyToNull(form.get("level")),
+      price: Number(form.get("price")),
+      description: form.get("description"),
+      outcome: form.get("outcome"),
+      lesson_count: Number(form.get("lesson_count") || 0),
+      duration: emptyToNull(form.get("duration")),
+      scheduled_at: emptyToNull(form.get("scheduled_at")),
+      seat_limit: numberOrNull(form.get("seat_limit")),
+      meeting_url: emptyToNull(form.get("meeting_url")),
+      material_url: emptyToNull(form.get("material_url")),
+      status: form.get("status"),
+    });
+
+    if (!product) {
+      event.currentTarget.reset();
+    }
+  }
+
+  return (
+    <form className="grid gap-3" onSubmit={handleSubmit}>
+      <Select name="type" defaultValue={product?.type ?? "course"} required>
+        <option value="course">Course</option>
+        <option value="webinar">Webinar</option>
+      </Select>
+      <Input name="title" placeholder="Judul produk" defaultValue={product?.title ?? ""} required />
+      <Input name="slug" placeholder="slug-produk-opsional" defaultValue={product?.slug ?? ""} />
+      <Input name="category" placeholder="Kategori" defaultValue={product?.category ?? ""} required />
+      <Input name="level" placeholder="Level" defaultValue={product?.level ?? ""} />
+      <Input name="price" placeholder="Harga" type="number" min="0" defaultValue={product?.price ?? ""} required />
+      <Textarea name="description" placeholder="Deskripsi produk" defaultValue={product?.description ?? ""} required />
+      <Textarea name="outcome" placeholder="Outcome setelah ikut produk" defaultValue={product?.outcome ?? ""} required />
+      <Input name="lesson_count" placeholder="Jumlah lesson" type="number" min="0" max="255" defaultValue={product?.lesson_count ?? 0} />
+      <Input name="duration" placeholder="Durasi, contoh: 4 minggu / 2 jam" defaultValue={product?.duration ?? ""} />
+      <Input name="scheduled_at" type="datetime-local" defaultValue={toDateTimeLocal(product?.scheduled_at)} />
+      <Input name="seat_limit" placeholder="Kuota webinar" type="number" min="1" defaultValue={product?.seat_limit ?? ""} />
+      <Input name="meeting_url" placeholder="Link meeting webinar" type="url" defaultValue={product?.meeting_url ?? ""} />
+      <Input name="material_url" placeholder="Link materi course" type="url" defaultValue={product?.material_url ?? ""} />
+      <Select name="status" defaultValue={product?.status ?? "active"} required>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+      </Select>
+      <SubmitButton />
+    </form>
+  );
+}
+
+function emptyToNull(value: FormDataEntryValue | null) {
+  const text = String(value ?? "").trim();
+
+  return text ? text : null;
+}
+
+function numberOrNull(value: FormDataEntryValue | null) {
+  const text = String(value ?? "").trim();
+
+  return text ? Number(text) : null;
+}
+
+function toDateTimeLocal(value?: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  return value.slice(0, 16).replace(" ", "T");
 }
 
 function EyeIcon() {

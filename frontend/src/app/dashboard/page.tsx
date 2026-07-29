@@ -1,7 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogoutConfirmModal } from "../components/LogoutConfirmModal";
@@ -12,6 +12,26 @@ type Skill = { id: number; name: string; category: string; description: string }
 type Assessment = { id: number; audience: Audience; title: string; description: string; question_count: number };
 type RoadmapModule = { id: number; career_goal: string; sequence: number; title: string; module_type: string; duration_hours: number; outcome: string };
 type SkillGap = { skill: string; current_score: number; target_score: number; gap: number };
+type RoadmapProgress = {
+  id: number;
+  roadmap_module_id: number;
+  title: string;
+  module_type: string;
+  duration_hours: number;
+  status: "not_started" | "in_progress" | "completed";
+  progress_percent: number;
+  due_date: string | null;
+};
+type ProjectSubmission = {
+  id: number;
+  roadmap_module_id: number;
+  title: string;
+  module_title: string;
+  description: string;
+  status: string;
+  score: number | null;
+  created_at: string;
+};
 type LearningOrder = {
   id: number;
   invoice_number: string;
@@ -46,8 +66,8 @@ type UserProfile = {
   mentor_feedback_score: number;
   readiness_score: number;
   readiness_status: string;
-  roadmap_progress: Array<{ title: string; module_type: string; duration_hours: number; status: string; progress_percent: number; due_date: string | null }>;
-  submissions: Array<{ title: string; module_title: string; description: string; status: string; score: number | null }>;
+  roadmap_progress: RoadmapProgress[];
+  submissions: ProjectSubmission[];
   mentor_feedback: { recommendation: string | null; score: number; notes: string | null };
 };
 
@@ -72,8 +92,10 @@ export default function Dashboard() {
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [logoutNotice, setLogoutNotice] = useState("");
+  const [journeyMessage, setJourneyMessage] = useState("");
+  const [journeyError, setJourneyError] = useState("");
 
-  useEffect(() => {
+  const loadDashboard = useCallback(async (showLoading = false) => {
     const token = localStorage.getItem("growtrack_token");
 
     if (!token) {
@@ -81,45 +103,121 @@ export default function Dashboard() {
       return;
     }
 
-    async function loadDashboard() {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api";
-
-      try {
-        const response = await fetch(`${baseUrl}/career-dashboard`, {
-          headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
-        });
-
-        if (response.status === 401) {
-          localStorage.removeItem("growtrack_token");
-          localStorage.removeItem("growtrack_user");
-          router.replace("/");
-          return;
-        }
-
-        if (!response.ok) {
-          setError("Dashboard gagal dimuat dari backend.");
-          return;
-        }
-
-        setData(await response.json());
-
-        const ordersResponse = await fetch(`${baseUrl}/orders/my`, {
-          headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
-        });
-
-        if (ordersResponse.ok) {
-          const ordersPayload = await ordersResponse.json();
-          setOrders(ordersPayload.orders ?? []);
-        }
-      } catch {
-        setError("Backend belum bisa dihubungi.");
-      } finally {
-        setLoading(false);
-      }
+    if (showLoading) {
+      setLoading(true);
     }
 
-    loadDashboard();
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api";
+
+    try {
+      const response = await fetch(`${baseUrl}/career-dashboard`, {
+        headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem("growtrack_token");
+        localStorage.removeItem("growtrack_user");
+        router.replace("/");
+        return;
+      }
+
+      if (!response.ok) {
+        setError("Dashboard gagal dimuat dari backend.");
+        return;
+      }
+
+      setData(await response.json());
+
+      const ordersResponse = await fetch(`${baseUrl}/orders/my`, {
+        headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+      });
+
+      if (ordersResponse.ok) {
+        const ordersPayload = await ordersResponse.json();
+        setOrders(ordersPayload.orders ?? []);
+      }
+    } catch {
+      setError("Backend belum bisa dihubungi.");
+    } finally {
+      setLoading(false);
+    }
   }, [router]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadDashboard();
+  }, [loadDashboard]);
+
+  async function updateRoadmapProgress(progress: RoadmapProgress, nextPercent: number) {
+    const token = localStorage.getItem("growtrack_token");
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api";
+    const progressPercent = Math.max(0, Math.min(nextPercent, 100));
+    const status = progressPercent >= 100 ? "completed" : progressPercent > 0 ? "in_progress" : "not_started";
+
+    setJourneyMessage("");
+    setJourneyError("");
+
+    try {
+      const response = await fetch(`${baseUrl}/roadmap-progress/${progress.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          status,
+          progress_percent: progressPercent,
+          due_date: progress.due_date,
+        }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        setJourneyError(payload.message ?? "Progress gagal diperbarui.");
+        return;
+      }
+
+      setJourneyMessage(payload.message ?? "Progress berhasil diperbarui.");
+      await loadDashboard();
+    } catch {
+      setJourneyError("Backend belum bisa dihubungi.");
+    }
+  }
+
+  async function submitProjectEvidence(progressId: number, payload: { title: string; description: string }) {
+    const token = localStorage.getItem("growtrack_token");
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api";
+
+    setJourneyMessage("");
+    setJourneyError("");
+
+    try {
+      const response = await fetch(`${baseUrl}/project-submissions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          roadmap_progress_id: progressId,
+          ...payload,
+        }),
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        setJourneyError(result.message ?? "Project evidence gagal dikirim.");
+        return;
+      }
+
+      setJourneyMessage(result.message ?? "Project evidence berhasil dikirim.");
+      await loadDashboard();
+    } catch {
+      setJourneyError("Backend belum bisa dihubungi.");
+    }
+  }
 
   async function handleLogout() {
     setLogoutLoading(true);
@@ -154,24 +252,48 @@ export default function Dashboard() {
 
   const featuredProfile = data.profiles[0];
   const secondProfile = data.profiles[1];
+  const role = data.current_user.role;
+  const isLearner = ["employee", "fresh_graduate"].includes(role);
+  const isReviewer = ["admin", "mentor"].includes(role);
+  const dashboardTitle = isLearner
+    ? `Lanjutkan belajar, ${data.current_user.name}.`
+    : "Pantau data karir yang tersimpan di backend.";
+  const dashboardBody = isLearner
+    ? "Area ini fokus ke akses kelas, progress roadmap, evidence project, dan report readiness kamu."
+    : "Angka di dashboard ini berasal dari database. Jika admin menambah career goal, skill, assessment, roadmap, atau user, ringkasan ini ikut berubah setelah refresh.";
 
   return (
     <main className="min-h-screen bg-brand-surface text-brand-text">
       <div className="mx-auto grid max-w-7xl gap-5 px-4 py-5 md:grid-cols-[220px_1fr] md:px-6">
         <aside className="animate-admin-enter rounded-lg border border-brand-border bg-white p-4 md:sticky md:top-5 md:h-[calc(100vh-40px)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">Career System</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">
+            {isLearner ? "Learning Space" : "Control Dashboard"}
+          </p>
           <h1 className="mt-2 text-2xl font-semibold">GrowTrack</h1>
           <div className="mt-3 rounded-md bg-brand-surface-strong p-3">
             <p className="text-sm font-semibold">{data.current_user.name}</p>
-            <p className="mt-1 text-xs text-brand-primary-dark">{data.current_user.role}</p>
+            <p className="mt-1 text-xs text-brand-primary-dark">{role}</p>
           </div>
           <nav className="mt-6 grid gap-2 text-sm font-medium">
-            <a className="rounded-md bg-brand-primary-dark px-3 py-2 text-white" href="#dashboard">Dashboard</a>
-            <a className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="#career-goals">Career Data</a>
-            <Link className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="/assessment">Take Assessment</Link>
+            <a className="rounded-md bg-brand-primary-dark px-3 py-2 text-white" href="#dashboard">
+              {isLearner ? "Ringkasan" : "Dashboard"}
+            </a>
+            <a className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="#kelas-saya">Kelas Saya</a>
+            {isLearner ? (
+              <a className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="#journey">Journey</a>
+            ) : (
+              <a className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="#career-goals">Career Data</a>
+            )}
+            <Link className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="/assessment">Assessment</Link>
             <a className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="#reports">Reports</a>
-            {data.current_user.role === "admin" ? (
-              <Link className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="/admin">Admin</Link>
+            {isReviewer ? (
+              <Link className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="/evidence-review">Evidence Review</Link>
+            ) : null}
+            {isReviewer ? (
+              <Link className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="/mentor-feedback">Mentor Feedback</Link>
+            ) : null}
+            {role === "admin" ? (
+              <Link className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="/admin">Admin Panel</Link>
             ) : null}
           </nav>
           <button type="button" onClick={() => setLogoutOpen(true)} className="mt-6 h-10 w-full rounded-md border border-brand-border-strong text-sm font-semibold text-brand-primary-dark transition hover:-translate-y-0.5 hover:bg-brand-surface-strong">
@@ -187,22 +309,34 @@ export default function Dashboard() {
           ) : null}
           <section id="dashboard" className="grid gap-4 rounded-lg border border-brand-border bg-brand-surface-strong p-5 lg:grid-cols-[1.1fr_0.9fr]">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">Realtime Dashboard</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">
+                {isLearner ? "Learning Dashboard" : "Realtime Dashboard"}
+              </p>
               <h2 className="mt-2 max-w-2xl text-3xl font-semibold leading-tight md:text-5xl">
-                Pantau data karir yang tersimpan di backend.
+                {dashboardTitle}
               </h2>
               <p className="mt-4 max-w-2xl text-base leading-7 text-brand-muted">
-                Angka di dashboard ini berasal dari database. Jika admin menambah career goal,
-                skill, assessment, roadmap, atau user, ringkasan ini ikut berubah setelah refresh.
+                {dashboardBody}
               </p>
               <div className="mt-5 grid gap-3 sm:grid-cols-4">
-                <Metric label="Active profiles" value={data.hr_summary.total_active_profiles} />
-                <Metric label="Career goals" value={data.goals.length} />
-                <Metric label="Skills" value={data.skills.length} />
-                <Metric label="Avg readiness" value={data.hr_summary.average_readiness} suffix="%" />
+                {isLearner && featuredProfile ? (
+                  <>
+                    <Metric label="Readiness" value={featuredProfile.readiness_score} suffix="%" />
+                    <Metric label="Roadmap" value={featuredProfile.roadmap_progress_score} suffix="%" />
+                    <Metric label="Project" value={featuredProfile.project_evidence_score} suffix="%" />
+                    <Metric label="Mentor" value={featuredProfile.mentor_feedback_score} suffix="%" />
+                  </>
+                ) : (
+                  <>
+                    <Metric label="Active profiles" value={data.hr_summary.total_active_profiles} />
+                    <Metric label="Career goals" value={data.goals.length} />
+                    <Metric label="Skills" value={data.skills.length} />
+                    <Metric label="Avg readiness" value={data.hr_summary.average_readiness} suffix="%" />
+                  </>
+                )}
               </div>
             </div>
-            <LiveSummary data={data} />
+            {isLearner && featuredProfile ? <LearnerSummary profile={featuredProfile} orders={orders} /> : <LiveSummary data={data} />}
           </section>
 
           <section id="kelas-saya" className="animate-card-in rounded-lg border border-brand-border bg-white p-5">
@@ -228,83 +362,94 @@ export default function Dashboard() {
           </section>
 
           {featuredProfile ? (
-            <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-              <ProfileCard profile={featuredProfile} />
-              <HrSummary data={data} />
+            <section id="journey" className={`grid gap-4 ${isLearner ? "" : "lg:grid-cols-[1.1fr_0.9fr]"}`}>
+              <ProfileCard
+                profile={featuredProfile}
+                canManageJourney={isLearner}
+                journeyMessage={journeyMessage}
+                journeyError={journeyError}
+                onUpdateProgress={updateRoadmapProgress}
+                onSubmitEvidence={submitProjectEvidence}
+              />
+              {isLearner ? null : <HrSummary data={data} />}
             </section>
           ) : (
             <EmptyState title="Belum ada profil karir" body="Masuk ke halaman Admin untuk membuat user employee/fresh graduate dan memilih career goal." />
           )}
 
-          <section id="career-goals" className="grid gap-4 lg:grid-cols-2">
-            <Panel title="Career Goals" eyebrow="Goal library">
-              {data.goals.length ? (
-                <div className="grid gap-3">
-                  {data.goals.map((goal) => (
-                    <article key={goal.id} className="rounded-lg border border-brand-border p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-primary-dark">{audienceLabel[goal.audience]}</p>
-                      <h3 className="mt-1 font-semibold">{goal.title}</h3>
-                      <p className="mt-2 text-sm leading-6 text-brand-muted">{goal.summary}</p>
-                      <p className="mt-3 text-sm font-medium">{goal.module_count} modules, {goal.total_hours} hours</p>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState title="Belum ada career goal" body="Tambahkan career goal dari halaman Admin." />
-              )}
-            </Panel>
+          {!isLearner ? (
+            <>
+              <section id="career-goals" className="grid gap-4 lg:grid-cols-2">
+                <Panel title="Career Goals" eyebrow="Goal library">
+                  {data.goals.length ? (
+                    <div className="grid gap-3">
+                      {data.goals.map((goal) => (
+                        <article key={goal.id} className="rounded-lg border border-brand-border p-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-primary-dark">{audienceLabel[goal.audience]}</p>
+                          <h3 className="mt-1 font-semibold">{goal.title}</h3>
+                          <p className="mt-2 text-sm leading-6 text-brand-muted">{goal.summary}</p>
+                          <p className="mt-3 text-sm font-medium">{goal.module_count} modules, {goal.total_hours} hours</p>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState title="Belum ada career goal" body="Tambahkan career goal dari halaman Admin." />
+                  )}
+                </Panel>
 
-            <Panel title="Roadmap Modules" eyebrow="Roadmap">
-              {data.roadmap.length ? (
-                <div className="grid gap-3">
-                  {data.roadmap.map((module) => (
-                    <article key={module.id} className="rounded-lg border border-brand-border p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-primary-dark">{module.career_goal}</p>
-                      <h3 className="mt-1 font-semibold">{module.sequence}. {module.title}</h3>
-                      <p className="mt-1 text-xs font-semibold text-brand-primary-dark">{module.module_type} - {module.duration_hours} jam</p>
-                      <p className="mt-2 text-sm leading-6 text-brand-muted">{module.outcome}</p>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState title="Belum ada roadmap" body="Tambahkan roadmap module dari halaman Admin." />
-              )}
-            </Panel>
-          </section>
+                <Panel title="Roadmap Modules" eyebrow="Roadmap">
+                  {data.roadmap.length ? (
+                    <div className="grid gap-3">
+                      {data.roadmap.map((module) => (
+                        <article key={module.id} className="rounded-lg border border-brand-border p-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-primary-dark">{module.career_goal}</p>
+                          <h3 className="mt-1 font-semibold">{module.sequence}. {module.title}</h3>
+                          <p className="mt-1 text-xs font-semibold text-brand-primary-dark">{module.module_type} - {module.duration_hours} jam</p>
+                          <p className="mt-2 text-sm leading-6 text-brand-muted">{module.outcome}</p>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState title="Belum ada roadmap" body="Tambahkan roadmap module dari halaman Admin." />
+                  )}
+                </Panel>
+              </section>
 
-          <section id="assessment" className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
-            <Panel title="Assessment Templates" eyebrow="Assessment">
-              {data.assessments.length ? (
-                <div className="grid gap-3">
-                  {data.assessments.map((assessment) => (
-                    <article key={assessment.id} className="rounded-lg border border-brand-border p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-primary-dark">{audienceLabel[assessment.audience]}</p>
-                      <h3 className="mt-1 font-semibold">{assessment.title}</h3>
-                      <p className="mt-2 text-sm leading-6 text-brand-muted">{assessment.description}</p>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState title="Belum ada assessment" body="Tambahkan template assessment dari halaman Admin." />
-              )}
-            </Panel>
+              <section id="assessment" className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
+                <Panel title="Assessment Templates" eyebrow="Assessment">
+                  {data.assessments.length ? (
+                    <div className="grid gap-3">
+                      {data.assessments.map((assessment) => (
+                        <article key={assessment.id} className="rounded-lg border border-brand-border p-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-primary-dark">{audienceLabel[assessment.audience]}</p>
+                          <h3 className="mt-1 font-semibold">{assessment.title}</h3>
+                          <p className="mt-2 text-sm leading-6 text-brand-muted">{assessment.description}</p>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState title="Belum ada assessment" body="Tambahkan template assessment dari halaman Admin." />
+                  )}
+                </Panel>
 
-            <Panel title="Skill Catalog" eyebrow="Skills">
-              {data.skills.length ? (
-                <div className="grid gap-3">
-                  {data.skills.map((skill) => (
-                    <article key={skill.id} className="rounded-lg border border-brand-border p-4">
-                      <h3 className="font-semibold">{skill.name}</h3>
-                      <p className="mt-1 text-xs font-semibold text-brand-primary-dark">{skill.category}</p>
-                      <p className="mt-2 text-sm leading-6 text-brand-muted">{skill.description}</p>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState title="Belum ada skill" body="Tambahkan skill dari halaman Admin." />
-              )}
-            </Panel>
-          </section>
+                <Panel title="Skill Catalog" eyebrow="Skills">
+                  {data.skills.length ? (
+                    <div className="grid gap-3">
+                      {data.skills.map((skill) => (
+                        <article key={skill.id} className="rounded-lg border border-brand-border p-4">
+                          <h3 className="font-semibold">{skill.name}</h3>
+                          <p className="mt-1 text-xs font-semibold text-brand-primary-dark">{skill.category}</p>
+                          <p className="mt-2 text-sm leading-6 text-brand-muted">{skill.description}</p>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState title="Belum ada skill" body="Tambahkan skill dari halaman Admin." />
+                  )}
+                </Panel>
+              </section>
+            </>
+          ) : null}
 
           <section id="reports" className="grid gap-4 lg:grid-cols-2">
             {featuredProfile ? <ReportCard profile={featuredProfile} /> : null}
@@ -432,6 +577,35 @@ function EmptyState({ title, body }: { title: string; body: string }) {
   );
 }
 
+function LearnerSummary({ profile, orders }: { profile: UserProfile; orders: LearningOrder[] }) {
+  const paidOrders = orders.filter((order) => order.status === "paid").length;
+  const activeRoadmap = profile.roadmap_progress.filter((progress) => progress.status !== "completed").length;
+  const latestSubmission = profile.submissions[0];
+
+  return (
+    <Panel title="Ringkasan Belajar" eyebrow="Progress Kamu">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Metric label="Akses aktif" value={paidOrders} />
+        <Metric label="Task berjalan" value={activeRoadmap} />
+      </div>
+      <div className="mt-3 rounded-lg border border-brand-border p-4">
+        <p className="text-sm font-semibold">Target belajar</p>
+        <p className="mt-2 text-2xl font-semibold">{profile.target_position}</p>
+        <p className="mt-1 text-sm leading-6 text-brand-muted">
+          Goal utama: {profile.career_goal}
+        </p>
+      </div>
+      <div className="mt-3 rounded-lg border border-brand-border p-4">
+        <p className="text-sm font-semibold">Evidence terbaru</p>
+        <p className="mt-2 text-lg font-semibold">{latestSubmission?.title ?? "Belum ada evidence"}</p>
+        <p className="mt-1 text-sm text-brand-muted">
+          {latestSubmission ? `Status ${latestSubmission.status}` : "Kirim project evidence dari bagian Journey."}
+        </p>
+      </div>
+    </Panel>
+  );
+}
+
 function LiveSummary({ data }: { data: DashboardData }) {
   const newestProfile = data.profiles[0];
   const highestGap = data.hr_summary.highest_gap;
@@ -460,36 +634,231 @@ function LiveSummary({ data }: { data: DashboardData }) {
   );
 }
 
-function ProfileCard({ profile }: { profile: UserProfile }) {
+function ProfileCard({
+  profile,
+  canManageJourney,
+  journeyMessage,
+  journeyError,
+  onUpdateProgress,
+  onSubmitEvidence,
+}: {
+  profile: UserProfile;
+  canManageJourney: boolean;
+  journeyMessage: string;
+  journeyError: string;
+  onUpdateProgress: (progress: RoadmapProgress, nextPercent: number) => void;
+  onSubmitEvidence: (progressId: number, payload: { title: string; description: string }) => void;
+}) {
   return (
     <Panel title="Active Career Journey" eyebrow={audienceLabel[profile.role]}>
-      <div className="grid gap-4 md:grid-cols-[1fr_auto]">
-        <div>
-          <h3 className="text-2xl font-semibold">{profile.name}</h3>
-          <p className="mt-1 text-sm text-brand-muted">{profile.email}</p>
-          <div className="mt-4 grid gap-2 text-sm">
-            <p><span className="font-semibold">Current:</span> {profile.current_position}</p>
-            <p><span className="font-semibold">Target:</span> {profile.target_position}</p>
-            <p><span className="font-semibold">Goal:</span> {profile.career_goal}</p>
+      <div className="grid gap-5">
+        <div className="grid gap-4 md:grid-cols-[1fr_auto]">
+          <div>
+            <h3 className="text-2xl font-semibold">{profile.name}</h3>
+            <p className="mt-1 text-sm text-brand-muted">{profile.email}</p>
+            <div className="mt-4 grid gap-2 text-sm">
+              <p><span className="font-semibold">Current:</span> {profile.current_position}</p>
+              <p><span className="font-semibold">Target:</span> {profile.target_position}</p>
+              <p><span className="font-semibold">Goal:</span> {profile.career_goal}</p>
+            </div>
+            <p className="mt-4 text-sm leading-6 text-brand-muted">{profile.assessment.summary ?? "Assessment belum diisi."}</p>
+            {!profile.assessment.summary ? (
+              <Link
+                href="/assessment"
+                className="mt-4 inline-flex rounded-md bg-brand-primary-dark px-3 py-2 text-sm font-semibold text-white hover:bg-brand-primary-deep"
+              >
+                Kerjakan assessment
+              </Link>
+            ) : null}
           </div>
-          <p className="mt-4 text-sm leading-6 text-brand-muted">{profile.assessment.summary ?? "Assessment belum diisi."}</p>
-          {!profile.assessment.summary ? (
-            <Link
-              href="/assessment"
-              className="mt-4 inline-flex rounded-md bg-brand-primary-dark px-3 py-2 text-sm font-semibold text-white hover:bg-brand-primary-deep"
-            >
-              Kerjakan assessment
-            </Link>
-          ) : null}
+          <div className="rounded-lg bg-brand-primary-dark p-4 text-white md:w-44">
+            <p className="text-sm text-brand-border">Readiness</p>
+            <p className="mt-1 text-5xl font-semibold">{profile.readiness_score}%</p>
+            <p className="mt-3 text-sm font-medium">{profile.readiness_status}</p>
+          </div>
         </div>
-        <div className="rounded-lg bg-brand-primary-dark p-4 text-white md:w-44">
-          <p className="text-sm text-brand-border">Readiness</p>
-          <p className="mt-1 text-5xl font-semibold">{profile.readiness_score}%</p>
-          <p className="mt-3 text-sm font-medium">{profile.readiness_status}</p>
-        </div>
+
+        {journeyMessage ? (
+          <p className="rounded-md border border-brand-border-strong bg-brand-surface-strong px-3 py-2 text-sm text-brand-primary-dark">
+            {journeyMessage}
+          </p>
+        ) : null}
+        {journeyError ? (
+          <p className="rounded-md border border-status-error-border bg-status-error-bg px-3 py-2 text-sm text-status-error-text">
+            {journeyError}
+          </p>
+        ) : null}
+
+        <RoadmapJourney
+          progress={profile.roadmap_progress}
+          submissions={profile.submissions}
+          canManageJourney={canManageJourney}
+          onUpdateProgress={onUpdateProgress}
+          onSubmitEvidence={onSubmitEvidence}
+        />
       </div>
     </Panel>
   );
+}
+
+function RoadmapJourney({
+  progress,
+  submissions,
+  canManageJourney,
+  onUpdateProgress,
+  onSubmitEvidence,
+}: {
+  progress: RoadmapProgress[];
+  submissions: ProjectSubmission[];
+  canManageJourney: boolean;
+  onUpdateProgress: (progress: RoadmapProgress, nextPercent: number) => void;
+  onSubmitEvidence: (progressId: number, payload: { title: string; description: string }) => void;
+}) {
+  if (!progress.length) {
+    return (
+      <div className="rounded-lg border border-dashed border-brand-border-strong bg-brand-panel-soft p-4">
+        <p className="font-semibold">Roadmap belum tersedia</p>
+        <p className="mt-2 text-sm leading-6 text-brand-muted">Admin perlu menambahkan module roadmap untuk career goal ini.</p>
+      </div>
+    );
+  }
+
+  return (
+    <section className="grid gap-3">
+      <div>
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">Roadmap Progress</p>
+        <h3 className="mt-1 text-lg font-semibold">Update perjalanan belajar</h3>
+      </div>
+      {progress.map((item) => (
+        <RoadmapProgressCard
+          key={item.id}
+          progress={item}
+          submissions={submissions.filter((submission) => submission.roadmap_module_id === item.roadmap_module_id)}
+          canManageJourney={canManageJourney}
+          onUpdateProgress={onUpdateProgress}
+          onSubmitEvidence={onSubmitEvidence}
+        />
+      ))}
+    </section>
+  );
+}
+
+function RoadmapProgressCard({
+  progress,
+  submissions,
+  canManageJourney,
+  onUpdateProgress,
+  onSubmitEvidence,
+}: {
+  progress: RoadmapProgress;
+  submissions: ProjectSubmission[];
+  canManageJourney: boolean;
+  onUpdateProgress: (progress: RoadmapProgress, nextPercent: number) => void;
+  onSubmitEvidence: (progressId: number, payload: { title: string; description: string }) => void;
+}) {
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
+
+  function handleEvidenceSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+
+    onSubmitEvidence(progress.id, {
+      title: String(form.get("title") ?? ""),
+      description: String(form.get("description") ?? ""),
+    });
+
+    event.currentTarget.reset();
+    setEvidenceOpen(false);
+  }
+
+  return (
+    <article className="rounded-lg border border-brand-border bg-brand-panel-soft p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-primary-dark">
+            {progress.module_type} - {progress.duration_hours} jam
+          </p>
+          <h4 className="mt-2 font-semibold">{progress.title}</h4>
+          <p className="mt-1 text-sm text-brand-muted">Status: {statusLabel(progress.status)}</p>
+        </div>
+        <span className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-brand-primary-dark">
+          {progress.progress_percent}%
+        </span>
+      </div>
+
+      <div className="mt-4 h-3 overflow-hidden rounded-sm bg-white">
+        <div
+          className="h-full rounded-sm bg-brand-primary-dark transition-all"
+          style={{ width: `${progress.progress_percent}%` }}
+        />
+      </div>
+
+      {canManageJourney ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button type="button" onClick={() => onUpdateProgress(progress, 25)} className="h-9 rounded-md border border-brand-border-strong px-3 text-sm font-semibold text-brand-primary-dark hover:bg-white">
+            25%
+          </button>
+          <button type="button" onClick={() => onUpdateProgress(progress, 50)} className="h-9 rounded-md border border-brand-border-strong px-3 text-sm font-semibold text-brand-primary-dark hover:bg-white">
+            50%
+          </button>
+          <button type="button" onClick={() => onUpdateProgress(progress, 100)} className="h-9 rounded-md bg-brand-primary-dark px-3 text-sm font-semibold text-white hover:bg-brand-primary-deep">
+            Selesai
+          </button>
+          <button type="button" onClick={() => setEvidenceOpen((value) => !value)} className="h-9 rounded-md border border-brand-border-strong px-3 text-sm font-semibold text-brand-primary-dark hover:bg-white">
+            Submit Evidence
+          </button>
+        </div>
+      ) : null}
+
+      {evidenceOpen ? (
+        <form className="mt-4 grid gap-3 rounded-lg border border-brand-border bg-white p-4" onSubmit={handleEvidenceSubmit}>
+          <input
+            name="title"
+            placeholder="Judul evidence/project"
+            required
+            className="h-10 rounded-md border border-brand-border-strong px-3 text-sm outline-none focus:border-brand-primary-dark focus:ring-2 focus:ring-brand-focus"
+          />
+          <textarea
+            name="description"
+            placeholder="Ceritakan output, link portfolio, atau bukti pengerjaan"
+            required
+            className="min-h-24 rounded-md border border-brand-border-strong px-3 py-2 text-sm outline-none focus:border-brand-primary-dark focus:ring-2 focus:ring-brand-focus"
+          />
+          <button type="submit" className="h-10 rounded-md bg-brand-primary-dark px-3 text-sm font-semibold text-white hover:bg-brand-primary-deep">
+            Kirim Evidence
+          </button>
+        </form>
+      ) : null}
+
+      {submissions.length ? (
+        <div className="mt-4 grid gap-2">
+          {submissions.map((submission) => (
+            <div key={submission.id} className="rounded-md bg-white px-3 py-2 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-semibold">{submission.title}</p>
+                <span className="rounded-md bg-brand-surface-strong px-2 py-1 text-xs font-semibold text-brand-primary-dark">
+                  {submission.score === null ? submission.status : `${submission.score}%`}
+                </span>
+              </div>
+              <p className="mt-1 leading-5 text-brand-muted">{submission.description}</p>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+function statusLabel(status: RoadmapProgress["status"]) {
+  if (status === "completed") {
+    return "Selesai";
+  }
+
+  if (status === "in_progress") {
+    return "Sedang berjalan";
+  }
+
+  return "Belum mulai";
 }
 
 function HrSummary({ data }: { data: DashboardData }) {

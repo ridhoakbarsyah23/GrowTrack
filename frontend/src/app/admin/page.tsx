@@ -88,6 +88,9 @@ export default function AdminOverviewPage() {
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <QuickLink href="/admin/master-data" title="Isi Master Data" body="Career goal, skill, assessment template, dan roadmap." />
             <QuickLink href="/admin/assessment-setup" title="Atur Assessment" body="Target skill dan pertanyaan yang dipakai user." />
+            <QuickLink href="/admin/products" title="Kelola Produk" body="Buat dan edit course atau webinar untuk katalog." />
+            <QuickLink href="/admin/evidence" title="Review Evidence" body="Nilai project submission agar readiness user naik." />
+            <QuickLink href="/admin/mentor-feedback" title="Mentor Feedback" body="Isi rekomendasi dan score mentor untuk user." />
             <QuickLink href="/admin/users" title="Kelola User" body="Buat akun user dan hubungkan ke career goal." />
             <QuickLink href="/admin/orders" title="Approve Order" body="Cek pembayaran manual course dan webinar." />
             <QuickLink href="/admin/preview" title="Cek Data Masuk" body="Pastikan konfigurasi sudah tersimpan dengan benar." />

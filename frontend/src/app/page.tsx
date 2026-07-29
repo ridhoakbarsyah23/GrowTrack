@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { PublicNav } from "./components/PublicNav";
 
 type Audience = "employee" | "fresh_graduate";
@@ -67,102 +67,27 @@ type MentorFeedback = {
   notes: string;
 };
 
-type CourseProduct = {
+type LearningProduct = {
+  id: number;
+  type: "course" | "webinar";
   title: string;
   slug: string;
   category: string;
+  level: string | null;
   price: number;
-  level: string;
-  lessons: number;
-  duration: string;
+  description: string;
   outcome: string;
-  accent: string;
-};
-
-type WebinarProduct = {
-  title: string;
-  slug: string;
-  date: string;
-  time: string;
-  seats: number;
-  price: number;
-  speaker: string;
-  topic: string;
+  lesson_count: number;
+  duration: string | null;
+  scheduled_at: string | null;
+  seat_limit: number | null;
+  status: "active" | "inactive";
 };
 
 const audienceLabel: Record<Audience, string> = {
   employee: "Karyawan",
   fresh_graduate: "Fresh Graduate",
 };
-
-const featuredCourses: CourseProduct[] = [
-  {
-    title: "Career Growth Sprint",
-    slug: "career-growth-sprint",
-    category: "Career",
-    price: 299000,
-    level: "Beginner",
-    lessons: 18,
-    duration: "4 minggu",
-    outcome: "Bangun roadmap karir, skill matrix, dan portfolio evidence yang siap dipantau.",
-    accent: "bg-gradient-to-br from-brand-primary-hover via-brand-primary to-brand-border-strong",
-  },
-  {
-    title: "AI Productivity for Work",
-    slug: "ai-productivity-for-work",
-    category: "AI Tools",
-    price: 349000,
-    level: "Intermediate",
-    lessons: 22,
-    duration: "5 minggu",
-    outcome: "Gunakan AI untuk riset, dokumen kerja, ide konten, dan workflow harian.",
-    accent: "bg-gradient-to-br from-brand-primary-dark via-brand-primary-hover to-brand-accent",
-  },
-  {
-    title: "Digital Marketing Launchpad",
-    slug: "digital-marketing-launchpad",
-    category: "Marketing",
-    price: 399000,
-    level: "Project based",
-    lessons: 26,
-    duration: "6 minggu",
-    outcome: "Rancang campaign, landing page, funnel, dan report performa untuk bisnis.",
-    accent: "bg-gradient-to-br from-brand-primary-deep via-brand-primary to-brand-border",
-  },
-];
-
-const upcomingWebinars: WebinarProduct[] = [
-  {
-    title: "Bangun Personal Branding LinkedIn",
-    slug: "bangun-personal-branding-linkedin",
-    date: "24 Jun 2026",
-    time: "19.30 WIB",
-    seats: 80,
-    price: 49000,
-    speaker: "Nadia Rahma",
-    topic: "Career growth",
-  },
-  {
-    title: "Strategi Jualan Course Pertama",
-    slug: "strategi-jualan-course-pertama",
-    date: "29 Jun 2026",
-    time: "20.00 WIB",
-    seats: 120,
-    price: 79000,
-    speaker: "Raka Pratama",
-    topic: "Creator business",
-  },
-  {
-    title: "AI Workflow untuk Admin & Founder",
-    slug: "ai-workflow-untuk-admin-founder",
-    date: "03 Jul 2026",
-    time: "19.00 WIB",
-    seats: 100,
-    price: 59000,
-    speaker: "Dimas Arya",
-    topic: "AI operations",
-  },
-];
 
 const checkoutSteps = [
   { title: "Pilih produk", body: "User memilih course evergreen atau webinar terjadwal dari katalog." },
@@ -182,8 +107,10 @@ const businessFeatures = [
 
 export default function HomePage() {
   const [data, setData] = useState<PublicData | null>(null);
+  const [products, setProducts] = useState<LearningProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const authToken = useSyncExternalStore(subscribeToAuthToken, getAuthTokenSnapshot, getServerAuthTokenSnapshot);
 
   useEffect(() => {
     async function loadPublicData() {
@@ -191,17 +118,27 @@ export default function HomePage() {
 
       try {
         setError("");
-        const response = await fetch(`${baseUrl}/public-summary`, {
-          headers: { Accept: "application/json" },
-          cache: "no-store",
-        });
+        const [summaryResponse, productsResponse] = await Promise.all([
+          fetch(`${baseUrl}/public-summary`, {
+            headers: { Accept: "application/json" },
+            cache: "no-store",
+          }),
+          fetch(`${baseUrl}/products`, {
+            headers: { Accept: "application/json" },
+            cache: "no-store",
+          }),
+        ]);
 
-        if (!response.ok) {
+        if (!summaryResponse.ok || !productsResponse.ok) {
           setError("Data realtime belum bisa dimuat dari backend.");
           return;
         }
 
-        setData(await response.json());
+        const summaryPayload = await summaryResponse.json();
+        const productsPayload = await productsResponse.json();
+
+        setData(summaryPayload);
+        setProducts(productsPayload.products ?? []);
       } catch {
         setError("Backend belum bisa dihubungi.");
       } finally {
@@ -212,15 +149,25 @@ export default function HomePage() {
     loadPublicData();
   }, []);
 
+  const courseProducts = useMemo(
+    () => products.filter((product) => product.type === "course"),
+    [products],
+  );
+  const webinarProducts = useMemo(
+    () => products.filter((product) => product.type === "webinar"),
+    [products],
+  );
   const liveMetrics = useMemo(
     () => [
-      { label: "Course siap jual", value: data?.career_goals ?? featuredCourses.length },
-      { label: "Webinar aktif", value: upcomingWebinars.length },
+      { label: "Course siap jual", value: courseProducts.length },
+      { label: "Webinar aktif", value: webinarProducts.length },
       { label: "Skill terukur", value: data?.skills },
       { label: "Profil belajar", value: data?.active_profiles },
     ],
-    [data],
+    [courseProducts.length, data, webinarProducts.length],
   );
+  const primaryCtaHref = authToken ? "/dashboard" : "/register";
+  const primaryCtaLabel = authToken ? "Buka Dashboard" : "Mulai Jualan";
 
   return (
     <main className="min-h-screen bg-brand-panel-soft text-brand-text">
@@ -243,10 +190,10 @@ export default function HomePage() {
 
             <div className="mt-7 grid gap-3 sm:flex sm:flex-wrap sm:items-center">
               <Link
-                href="/register"
+                href={primaryCtaHref}
                 className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-brand-primary px-5 text-sm font-bold text-white shadow-brand-button transition hover:-translate-y-1 hover:bg-brand-primary-hover hover:shadow-brand-button-hover active:translate-y-0 active:scale-[0.98] sm:w-auto"
               >
-                Mulai Jualan
+                {primaryCtaLabel}
               </Link>
               <Link
                 href="#kursus"
@@ -294,23 +241,35 @@ export default function HomePage() {
         <SectionHeader
           eyebrow="Course Catalog"
           title="Produk course yang bisa langsung dijadikan etalase"
-          action={<Link href="/admin/master-data" className="text-sm font-bold text-brand-primary-dark hover:text-brand-primary">Kelola produk</Link>}
+          action={<Link href="/admin/products" className="text-sm font-bold text-brand-primary-dark hover:text-brand-primary">Kelola produk</Link>}
         />
-        <div className="mt-7 grid gap-5 lg:grid-cols-3">
-          {featuredCourses.map((course) => (
-            <CourseCard key={course.title} course={course} />
-          ))}
-        </div>
+        {loading ? (
+          <CardSkeletonGrid columns="lg:grid-cols-3" />
+        ) : courseProducts.length ? (
+          <div className="mt-7 grid gap-5 lg:grid-cols-3">
+            {courseProducts.map((course, index) => (
+              <CourseCard key={course.id} course={course} accent={courseAccent(index)} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState title="Belum ada course aktif" body="Tambahkan produk course dari halaman Admin Products agar tampil di katalog." />
+        )}
       </section>
 
       <section id="webinar" className="border-y border-brand-border bg-brand-surface">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-5">
           <SectionHeader eyebrow="Live Webinar" title="Jadwal webinar dengan kuota dan harga jelas" />
-          <div className="mt-7 grid gap-4 lg:grid-cols-3">
-            {upcomingWebinars.map((webinar) => (
-              <WebinarCard key={webinar.title} webinar={webinar} />
-            ))}
-          </div>
+          {loading ? (
+            <CardSkeletonGrid columns="lg:grid-cols-3" />
+          ) : webinarProducts.length ? (
+            <div className="mt-7 grid gap-4 lg:grid-cols-3">
+              {webinarProducts.map((webinar) => (
+                <WebinarCard key={webinar.id} webinar={webinar} />
+              ))}
+            </div>
+          ) : (
+            <EmptyState title="Belum ada webinar aktif" body="Tambahkan produk webinar dari halaman Admin Products agar jadwal tampil di sini." />
+          )}
         </div>
       </section>
 
@@ -461,15 +420,29 @@ export default function HomePage() {
             <h2 className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">Mulai dari katalog, checkout manual, lalu scale ke payment gateway.</h2>
           </div>
           <Link
-            href="/register"
+            href={primaryCtaHref}
             className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-brand-primary px-5 text-sm font-bold text-white transition hover:-translate-y-1 hover:bg-brand-primary-hover active:translate-y-0 active:scale-[0.98] sm:w-auto"
           >
-            Register Gratis
+            {authToken ? "Buka Dashboard" : "Register Gratis"}
           </Link>
         </div>
       </section>
     </main>
   );
+}
+
+function subscribeToAuthToken(onStoreChange: () => void) {
+  window.addEventListener("storage", onStoreChange);
+
+  return () => window.removeEventListener("storage", onStoreChange);
+}
+
+function getAuthTokenSnapshot() {
+  return localStorage.getItem("growtrack_token");
+}
+
+function getServerAuthTokenSnapshot() {
+  return null;
 }
 
 function SectionHeader({ eyebrow, title, action }: { eyebrow: string; title: string; action?: ReactNode }) {
@@ -484,16 +457,16 @@ function SectionHeader({ eyebrow, title, action }: { eyebrow: string; title: str
   );
 }
 
-function CourseCard({ course }: { course: CourseProduct }) {
+function CourseCard({ course, accent }: { course: LearningProduct; accent: string }) {
   return (
     <article className="animate-feature-card overflow-hidden rounded-lg border border-brand-border bg-white shadow-sm transition hover:-translate-y-1 hover:border-brand-primary hover:shadow-brand-card">
-      <div className={`${course.accent} min-h-40 p-5 text-white`}>
+      <div className={`${accent} min-h-40 p-5 text-white`}>
         <div className="flex items-start justify-between gap-3">
           <span className="rounded-md bg-white px-3 py-1 text-xs font-bold text-brand-text">{course.category}</span>
-          <span className="rounded-md bg-white/20 px-3 py-1 text-xs font-bold">{course.level}</span>
+          <span className="rounded-md bg-white/20 px-3 py-1 text-xs font-bold">{course.level ?? "Course"}</span>
         </div>
         <h3 className="mt-8 text-xl font-bold leading-tight">{course.title}</h3>
-        <p className="mt-2 text-sm font-semibold text-white/80">{course.duration} - {course.lessons} materi</p>
+        <p className="mt-2 text-sm font-semibold text-white/80">{course.duration ?? "Mandiri"} - {course.lesson_count} materi</p>
       </div>
       <div className="p-5">
         <p className="text-2xl font-black text-brand-primary">{formatRupiah(course.price)}</p>
@@ -509,20 +482,22 @@ function CourseCard({ course }: { course: CourseProduct }) {
   );
 }
 
-function WebinarCard({ webinar }: { webinar: WebinarProduct }) {
+function WebinarCard({ webinar }: { webinar: LearningProduct }) {
+  const schedule = formatSchedule(webinar.scheduled_at);
+
   return (
     <article className="animate-feature-card rounded-lg border border-brand-border bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-brand-primary hover:shadow-brand-card-soft">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-black text-brand-primary-dark">{webinar.topic}</p>
+          <p className="text-sm font-black text-brand-primary-dark">{webinar.category}</p>
           <h3 className="mt-2 text-lg font-bold leading-tight">{webinar.title}</h3>
         </div>
-        <span className="shrink-0 rounded-md bg-brand-surface-strong px-3 py-1 text-xs font-black text-brand-primary-dark">{webinar.seats} seat</span>
+        <span className="shrink-0 rounded-md bg-brand-surface-strong px-3 py-1 text-xs font-black text-brand-primary-dark">{webinar.seat_limit ?? "-"} seat</span>
       </div>
       <div className="mt-5 grid gap-2 text-sm font-semibold text-brand-muted">
-        <p>{webinar.date}</p>
-        <p>{webinar.time}</p>
-        <p>Mentor: {webinar.speaker}</p>
+        <p>{schedule.date}</p>
+        <p>{schedule.time}</p>
+        <p>{webinar.level ?? "Live Session"}</p>
       </div>
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
         <p className="text-xl font-black text-brand-primary">{formatRupiah(webinar.price)}</p>
@@ -532,6 +507,29 @@ function WebinarCard({ webinar }: { webinar: WebinarProduct }) {
       </div>
     </article>
   );
+}
+
+function courseAccent(index: number) {
+  const accents = [
+    "bg-gradient-to-br from-brand-primary-hover via-brand-primary to-brand-border-strong",
+    "bg-gradient-to-br from-brand-primary-dark via-brand-primary-hover to-brand-accent",
+    "bg-gradient-to-br from-brand-primary-deep via-brand-primary to-brand-border",
+  ];
+
+  return accents[index % accents.length];
+}
+
+function formatSchedule(value: string | null) {
+  if (!value) {
+    return { date: "Jadwal menyusul", time: "Waktu menyusul" };
+  }
+
+  const date = new Date(value);
+
+  return {
+    date: date.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
+    time: `${date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB`,
+  };
 }
 
 function LiveMetric({ label, value, loading }: { label: string; value?: number; loading: boolean }) {
