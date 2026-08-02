@@ -47,7 +47,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push(payload.user.role === "admin" ? "/admin" : "/");
+      router.push(payload.user.role === "admin" ? "/admin" : "/dashboard");
     } catch {
       setError("Backend belum bisa dihubungi. Pastikan Laravel sudah running.");
     } finally {

@@ -29,6 +29,10 @@ export default function AdminOrdersPage() {
   const [ordersMessage, setOrdersMessage] = useState("");
   const [ordersError, setOrdersError] = useState("");
   const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api";
+  const pendingOrders = orders.filter((order) => order.status === "pending");
+  const paidOrders = orders.filter((order) => order.status === "paid");
+  const cancelledOrders = orders.filter((order) => order.status === "cancelled");
+  const paidRevenue = paidOrders.reduce((total, order) => total + order.amount, 0);
 
   async function loadOrders() {
     const token = localStorage.getItem("growtrack_token");
@@ -61,6 +65,17 @@ export default function AdminOrdersPage() {
 
   async function updateStatus(orderId: number, status: AdminOrder["status"]) {
     const token = localStorage.getItem("growtrack_token");
+    const order = orders.find((item) => item.id === orderId);
+
+    if (order && status !== "pending") {
+      const action = status === "paid" ? "approve pembayaran" : "cancel order";
+      const confirmed = window.confirm(`Yakin ${action} untuk invoice ${order.invoice_number}?`);
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
     setOrdersMessage("");
     setOrdersError("");
 
@@ -111,14 +126,26 @@ export default function AdminOrdersPage() {
         loadOrders();
       }}
     >
+      <section className="grid gap-3 sm:grid-cols-4">
+        <OrderMetric label="Pending" value={pendingOrders.length} body="Butuh verifikasi admin." tone={pendingOrders.length ? "warning" : "normal"} />
+        <OrderMetric label="Paid" value={paidOrders.length} body="Akses user sudah terbuka." />
+        <OrderMetric label="Cancelled" value={cancelledOrders.length} body="Order tidak aktif." tone="muted" />
+        <OrderMetric label="Revenue paid" value={formatRupiah(paidRevenue)} body="Total dari order paid." />
+      </section>
+
       <section className="animate-card-in rounded-lg border border-brand-border bg-white p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">Manual Payment</p>
             <h2 className="mt-2 text-xl font-semibold">Order Masuk</h2>
             <p className="mt-2 text-sm leading-6 text-brand-muted">
-              Ubah order menjadi paid setelah pembayaran diterima.
+              Ubah order menjadi paid setelah pembayaran diterima. Order pending diprioritaskan untuk dicek lebih dulu.
             </p>
+            {pendingOrders.length ? (
+              <p className="mt-3 rounded-md border border-status-warning-border bg-status-warning-bg px-3 py-2 text-sm font-semibold text-status-warning-text">
+                {pendingOrders.length} order menunggu verifikasi pembayaran.
+              </p>
+            ) : null}
           </div>
           <button
             type="button"
@@ -135,7 +162,7 @@ export default function AdminOrdersPage() {
           <div className="mt-5 grid gap-4">
             {orders.map((order) => (
               <article key={order.id} className="rounded-lg border border-brand-border bg-brand-panel-soft p-4">
-                <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_160px]">
                   <div className="min-w-0">
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-primary-dark">
                       {order.invoice_number} - {order.product_type}
@@ -143,14 +170,19 @@ export default function AdminOrdersPage() {
                     <h3 className="mt-2 text-lg font-semibold">{order.product_title}</h3>
                     <p className="mt-1 text-sm text-brand-muted">{order.customer_name} - {order.customer_email}</p>
                     <p className="mt-2 text-sm font-semibold text-brand-text">{formatRupiah(order.amount)}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <OrderBadge label={paymentMethodLabel(order.payment_method)} />
+                      <OrderBadge label={`Dibuat ${formatDate(order.created_at)}`} />
+                      {order.paid_at ? <OrderBadge label={`Paid ${formatDate(order.paid_at)}`} /> : null}
+                    </div>
                     {order.payment_note ? (
                       <p className="mt-3 rounded-md bg-white px-3 py-2 text-sm leading-6 text-brand-muted">
                         {order.payment_note}
                       </p>
                     ) : null}
                   </div>
-                  <div className="grid min-w-40 gap-2">
-                    <span className={`rounded-md px-3 py-2 text-center text-sm font-semibold ${order.status === "paid" ? "bg-brand-surface-strong text-brand-primary-dark" : order.status === "cancelled" ? "bg-status-error-bg text-status-error-text" : "bg-status-warning-bg text-status-warning-text"}`}>
+                  <div className="grid w-full gap-2 sm:w-[160px]">
+                    <span className={`rounded-md px-3 py-2 text-center text-sm font-semibold ${statusClassName(order.status)}`}>
                       {order.status}
                     </span>
                     <button
@@ -161,6 +193,15 @@ export default function AdminOrdersPage() {
                     >
                       Mark paid
                     </button>
+                    {order.status !== "pending" ? (
+                      <button
+                        type="button"
+                        onClick={() => updateStatus(order.id, "pending")}
+                        className="h-10 rounded-md border border-brand-border-strong px-3 text-sm font-semibold text-brand-primary-dark hover:bg-white"
+                      >
+                        Reopen pending
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => updateStatus(order.id, "cancelled")}
@@ -182,6 +223,64 @@ export default function AdminOrdersPage() {
       </section>
     </AdminShell>
   );
+}
+
+function OrderMetric({ label, value, body, tone = "normal" }: { label: string; value: number | string; body: string; tone?: "normal" | "warning" | "muted" }) {
+  const className = tone === "warning"
+    ? "border-status-warning-border bg-status-warning-bg text-status-warning-text"
+    : tone === "muted"
+      ? "border-brand-border bg-brand-panel-soft text-brand-muted"
+      : "border-brand-border bg-white text-brand-primary-dark";
+
+  return (
+    <div className={`rounded-lg border p-4 shadow-sm ${className}`}>
+      <p className="text-sm font-semibold">{label}</p>
+      <p className="mt-2 text-3xl font-semibold text-brand-text">{value}</p>
+      <p className="mt-1 text-sm leading-5">{body}</p>
+    </div>
+  );
+}
+
+function OrderBadge({ label }: { label: string }) {
+  return (
+    <span className="rounded-md bg-white px-2 py-1 text-xs font-semibold text-brand-primary-dark">
+      {label}
+    </span>
+  );
+}
+
+function statusClassName(status: AdminOrder["status"]) {
+  if (status === "paid") {
+    return "bg-brand-surface-strong text-brand-primary-dark";
+  }
+
+  if (status === "cancelled") {
+    return "bg-status-error-bg text-status-error-text";
+  }
+
+  return "bg-status-warning-bg text-status-warning-text";
+}
+
+function paymentMethodLabel(method: string) {
+  if (method === "manual_transfer") {
+    return "Manual transfer";
+  }
+
+  if (method === "midtrans_snap") {
+    return "Midtrans Snap";
+  }
+
+  return method;
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 function formatRupiah(value: number) {

@@ -107,12 +107,26 @@ DB_USERNAME=root
 DB_PASSWORD=
 ```
 
-Pathly AI Career Coach berjalan dalam mode rule-based secara default. Untuk mengaktifkan enhancement OpenAI, isi `.env` backend:
+Pathly AI Career Coach dan Helpdesk AI berjalan dalam mode rule-based secara default. Helpdesk AI bisa ditingkatkan dengan provider OpenAI atau Ollama lokal.
+
+Untuk mengaktifkan OpenAI, isi `.env` backend:
 
 ```env
 AI_COACH_ENABLED=true
+AI_SUPPORT_ENABLED=true
+AI_SUPPORT_PROVIDER=openai
 OPENAI_API_KEY=isi_api_key_di_local_env
 OPENAI_MODEL=gpt-5
+```
+
+Untuk opsi open-source lokal dengan Ollama, install Ollama, jalankan `ollama pull qwen2.5:1.5b`, lalu isi `.env` backend:
+
+```env
+AI_SUPPORT_ENABLED=true
+AI_SUPPORT_PROVIDER=ollama
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=qwen2.5:1.5b
+OLLAMA_TIMEOUT=30
 ```
 
 Jangan commit nilai `OPENAI_API_KEY`. Jika konfigurasi Laravel pernah di-cache, jalankan `php artisan config:clear` setelah mengubah `.env`.
@@ -147,6 +161,7 @@ Frontend default membaca API dari:
 ```env
 NEXT_PUBLIC_API_URL=http://127.0.0.1:8000/api
 NEXT_PUBLIC_MANUAL_PAYMENT_INSTRUCTIONS=
+NEXT_PUBLIC_HELPDESK_URL=mailto:support@pathly.ai
 ```
 
 Lalu buka:

@@ -28,20 +28,36 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8'],
-            'role' => ['required', Rule::in(self::LEARNER_ROLES)],
-            'career_goal_id' => ['required', 'exists:career_goals,id'],
-            'education' => ['nullable', 'string', 'max:255'],
-            'department' => ['nullable', 'string', 'max:255'],
-            'current_position' => ['required', 'string', 'max:255'],
-            'experience_summary' => ['nullable', 'string'],
-            'self_reported_skills' => ['nullable', 'string'],
-            'interests' => ['nullable', 'string'],
-            'target_position' => ['required', 'string', 'max:255'],
-        ]);
+        $validated = $request->validate(
+            [
+                'name' => ['required', 'string', 'max:255'],
+                'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+                'password' => ['required', 'string', 'min:8'],
+                'role' => ['required', Rule::in(self::LEARNER_ROLES)],
+                'career_goal_id' => ['required', 'exists:career_goals,id'],
+                'education' => ['nullable', 'string', 'max:255'],
+                'department' => ['nullable', 'string', 'max:255'],
+                'current_position' => ['required', 'string', 'max:255'],
+                'experience_summary' => ['nullable', 'string'],
+                'self_reported_skills' => ['nullable', 'string'],
+                'interests' => ['nullable', 'string'],
+                'target_position' => ['required', 'string', 'max:255'],
+            ],
+            [
+                'name.required' => 'Nama lengkap wajib diisi.',
+                'email.required' => 'Email wajib diisi.',
+                'email.email' => 'Format email belum valid.',
+                'email.unique' => 'Email ini sudah terdaftar. Silakan login atau gunakan email lain.',
+                'password.required' => 'Password wajib diisi.',
+                'password.min' => 'Password minimal 8 karakter.',
+                'role.required' => 'Pilih tipe user terlebih dahulu.',
+                'role.in' => 'Tipe user tidak valid.',
+                'career_goal_id.required' => 'Pilih target karier terlebih dahulu.',
+                'career_goal_id.exists' => 'Target karier yang dipilih tidak tersedia.',
+                'current_position.required' => 'Status atau posisi saat ini wajib diisi.',
+                'target_position.required' => 'Target posisi wajib diisi.',
+            ],
+        );
 
         $careerGoal = DB::table('career_goals')->where('id', $validated['career_goal_id'])->first();
 

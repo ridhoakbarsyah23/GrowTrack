@@ -176,13 +176,13 @@ function EditableList({
         {items.length ? (
           items.map((item) => (
             <article key={item.id} className="rounded-lg border border-brand-border bg-brand-panel-soft p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
                 <div className="min-w-0">
                   <h3 className="font-semibold">{item.title}</h3>
                   <p className="mt-1 text-xs font-semibold text-brand-primary-dark">{item.meta}</p>
                   <p className="mt-2 text-sm leading-6 text-brand-muted">{item.body}</p>
                 </div>
-                <div className="flex shrink-0 gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
                   <button type="button" onClick={item.onEdit} className="h-9 rounded-md bg-brand-primary-dark px-3 text-sm font-semibold text-white hover:bg-brand-primary-deep">
                     Edit
                   </button>

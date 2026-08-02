@@ -23,6 +23,9 @@ export type CareerGoal = {
 type LearnerRole = "student" | "employee" | "fresh_graduate";
 
 export type AdminData = {
+  settings: {
+    manual_payment_instructions: string | null;
+  };
   users: Array<{ id: number; name: string; email: string; role: string }>;
   career_goals: CareerGoal[];
   skills: Array<{ id: number; name: string; category: string; description: string }>;
@@ -73,7 +76,7 @@ export type AdminData = {
     seat_limit: number | null;
     meeting_url: string | null;
     material_url: string | null;
-    status: "active" | "inactive";
+    status: "draft" | "active" | "inactive";
     created_at: string;
   }>;
   project_submissions: Array<{
@@ -122,6 +125,9 @@ export type AdminData = {
 };
 
 export const emptyAdminData: AdminData = {
+  settings: {
+    manual_payment_instructions: null,
+  },
   users: [],
   career_goals: [],
   skills: [],
@@ -261,17 +267,32 @@ export function AdminShell({
 
   return (
     <main className="min-h-screen bg-brand-panel-soft text-brand-text">
-      <div className="mx-auto grid max-w-7xl gap-5 px-5 py-6 lg:grid-cols-[240px_1fr]">
-        <aside className="animate-admin-enter rounded-lg border border-brand-primary-deep bg-brand-text p-4 text-white shadow-md lg:sticky lg:top-6 lg:h-[calc(100vh-48px)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-border">
-            Admin Console
-          </p>
-          <h1 className="mt-2 text-2xl font-semibold">Pathly AI</h1>
-          <p className="mt-2 text-sm leading-5 text-white/70">
+      <div className="mx-auto grid w-full max-w-7xl gap-4 px-3 py-4 sm:px-4 sm:py-5 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-5 lg:px-5 lg:py-6">
+        <aside className="animate-admin-enter rounded-lg border border-brand-primary-deep bg-brand-text p-3 text-white shadow-md sm:p-4 lg:sticky lg:top-6 lg:h-[calc(100vh-48px)] lg:overflow-y-auto">
+          <div className="flex flex-wrap items-start justify-between gap-3 lg:block">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-border">
+                Admin Console
+              </p>
+              <h1 className="mt-1 text-xl font-semibold sm:mt-2 sm:text-2xl">Pathly AI</h1>
+            </div>
+            <button
+              type="button"
+              onClick={onRefresh}
+              className="h-9 rounded-md border border-white/20 px-3 text-xs font-semibold text-white transition hover:bg-white/10 active:scale-[0.98] lg:hidden"
+            >
+              Refresh
+            </button>
+          </div>
+          <p className="mt-2 hidden text-sm leading-5 text-white/70 sm:block">
             Area operasional untuk profil karier, skill target, assessment, roadmap, dan feedback mentor.
           </p>
-          <nav className="mt-6 grid gap-2 text-sm font-medium">
+          <nav className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-2 text-sm font-medium lg:mx-0 lg:mt-6 lg:grid lg:overflow-visible lg:px-0 lg:pb-0">
             <AdminNavLink href="/admin" active={pathname === "/admin"}>Overview</AdminNavLink>
+            <AdminNavLink href="/admin/setup" active={pathname === "/admin/setup"}>Setup Wizard</AdminNavLink>
+            <AdminNavLink href="/admin/analytics" active={pathname === "/admin/analytics"}>Analytics</AdminNavLink>
+            <AdminNavLink href="/admin/settings" active={pathname === "/admin/settings"}>Settings</AdminNavLink>
+            <AdminNavLink href="/admin/import" active={pathname === "/admin/import"}>Import Data</AdminNavLink>
             <AdminNavLink href="/admin/master-data" active={pathname === "/admin/master-data"}>Master Data</AdminNavLink>
             <AdminNavLink href="/admin/assessment-setup" active={pathname === "/admin/assessment-setup"}>Assessment Setup</AdminNavLink>
             <AdminNavLink href="/admin/products" active={pathname === "/admin/products"}>Products</AdminNavLink>
@@ -280,7 +301,7 @@ export function AdminShell({
             <AdminNavLink href="/admin/users" active={pathname === "/admin/users"}>Users</AdminNavLink>
             <AdminNavLink href="/admin/orders" active={pathname === "/admin/orders"}>Orders</AdminNavLink>
             <AdminNavLink href="/admin/preview" active={pathname === "/admin/preview"}>Preview Data</AdminNavLink>
-            <Link className="rounded-md px-3 py-2 text-white/70 transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-white active:translate-y-0 active:scale-[0.98]" href="/dashboard">
+            <Link className="shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-white/70 transition hover:-translate-y-0.5 hover:bg-white/10 hover:text-white active:translate-y-0 active:scale-[0.98]" href="/dashboard">
               User Dashboard
             </Link>
           </nav>
@@ -300,16 +321,16 @@ export function AdminShell({
           </button>
         </aside>
 
-        <div className="animate-admin-enter [animation-delay:80ms]">
-          <header className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
+        <div className="min-w-0 animate-admin-enter [animation-delay:80ms]">
+          <header className="rounded-lg border border-brand-border bg-white p-4 shadow-sm sm:p-5">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">
               {eyebrow}
             </p>
-            <h2 className="mt-2 max-w-4xl text-3xl font-semibold leading-tight md:text-5xl">
+            <h2 className="mt-2 max-w-4xl text-2xl font-semibold leading-tight sm:text-3xl md:text-5xl">
               {title}
             </h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-brand-muted">{body}</p>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-9">
+            <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-9">
               <Metric label="Users" value={data.users.length} />
               <Metric label="Goals" value={data.career_goals.length} />
               <Metric label="Skills" value={data.skills.length} />
@@ -355,7 +376,7 @@ export function AdminShell({
 function AdminNavLink({ href, active, children }: { href: string; active: boolean; children: ReactNode }) {
   return (
     <Link
-      className={`rounded-md px-3 py-2 transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] ${
+      className={`shrink-0 whitespace-nowrap rounded-md px-3 py-2 transition hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] ${
         active ? "bg-white text-brand-primary-dark shadow-sm" : "text-white/70 hover:bg-white/10 hover:text-white"
       }`}
       href={href}
@@ -415,8 +436,8 @@ export function QuickLink({ href, title, body }: { href: string; title: string; 
       href={href}
     >
       <div className="flex items-start justify-between gap-3">
-        <p className="font-semibold">{title}</p>
-        <span className="grid h-7 w-7 place-items-center rounded-md bg-brand-surface-strong text-brand-primary-dark transition group-hover:translate-x-0.5 group-hover:bg-white">
+        <p className="min-w-0 font-semibold">{title}</p>
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-brand-surface-strong text-brand-primary-dark transition group-hover:translate-x-0.5 group-hover:bg-white">
           <ArrowRightIcon />
         </span>
       </div>
@@ -435,7 +456,7 @@ export function FormCard({
   children: ReactNode;
 }) {
   return (
-    <section className="animate-card-in rounded-lg border border-brand-border bg-white p-5">
+    <section className="animate-card-in rounded-lg border border-brand-border bg-white p-4 sm:p-5">
       <h2 className="text-xl font-semibold">{title}</h2>
       <p className="mt-2 text-sm leading-6 text-brand-muted">{description}</p>
       <div className="mt-4">{children}</div>
@@ -445,9 +466,9 @@ export function FormCard({
 
 export function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-brand-border bg-brand-panel-soft p-4 transition hover:-translate-y-0.5 hover:shadow-sm">
-      <p className="text-2xl font-semibold">{value}</p>
-      <p className="mt-1 text-sm text-brand-primary-dark">{label}</p>
+    <div className="min-w-0 rounded-lg border border-brand-border bg-brand-panel-soft p-3 transition hover:-translate-y-0.5 hover:shadow-sm sm:p-4">
+      <p className="truncate text-xl font-semibold sm:text-2xl">{value}</p>
+      <p className="mt-1 truncate text-xs text-brand-primary-dark sm:text-sm">{label}</p>
     </div>
   );
 }
@@ -475,7 +496,7 @@ function Input(props: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className="h-11 rounded-md border border-brand-border-strong bg-white px-3 text-sm outline-none focus:border-brand-primary-dark focus:ring-2 focus:ring-brand-focus"
+      className="h-11 w-full min-w-0 rounded-md border border-brand-border-strong bg-white px-3 text-sm outline-none focus:border-brand-primary-dark focus:ring-2 focus:ring-brand-focus"
     />
   );
 }
@@ -484,7 +505,7 @@ function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select
       {...props}
-      className="h-11 rounded-md border border-brand-border-strong bg-white px-3 text-sm outline-none focus:border-brand-primary-dark focus:ring-2 focus:ring-brand-focus"
+      className="h-11 w-full min-w-0 rounded-md border border-brand-border-strong bg-white px-3 text-sm outline-none focus:border-brand-primary-dark focus:ring-2 focus:ring-brand-focus"
     />
   );
 }
@@ -493,14 +514,14 @@ function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <textarea
       {...props}
-      className="min-h-24 rounded-md border border-brand-border-strong bg-white px-3 py-2 text-sm outline-none focus:border-brand-primary-dark focus:ring-2 focus:ring-brand-focus"
+      className="min-h-24 w-full min-w-0 rounded-md border border-brand-border-strong bg-white px-3 py-2 text-sm outline-none focus:border-brand-primary-dark focus:ring-2 focus:ring-brand-focus"
     />
   );
 }
 
 function SubmitButton() {
   return (
-    <button className="h-11 rounded-md bg-brand-primary-dark px-4 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-brand-primary-deep active:translate-y-0 active:scale-[0.98]">
+    <button className="h-11 w-full rounded-md bg-brand-primary-dark px-4 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-brand-primary-deep active:translate-y-0 active:scale-[0.98] sm:w-auto">
       Simpan
     </button>
   );
@@ -899,7 +920,8 @@ export function ProductForm({
       <Input name="seat_limit" placeholder="Kuota webinar" type="number" min="1" defaultValue={product?.seat_limit ?? ""} />
       <Input name="meeting_url" placeholder="Link meeting webinar" type="url" defaultValue={product?.meeting_url ?? ""} />
       <Input name="material_url" placeholder="Link materi course" type="url" defaultValue={product?.material_url ?? ""} />
-      <Select name="status" defaultValue={product?.status ?? "active"} required>
+      <Select name="status" defaultValue={product?.status ?? "draft"} required>
+        <option value="draft">Draft</option>
         <option value="active">Active</option>
         <option value="inactive">Inactive</option>
       </Select>

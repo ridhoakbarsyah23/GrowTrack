@@ -36,7 +36,7 @@ export default function UsersPage() {
           <UserForm goals={data.career_goals} onSubmit={(payload) => submit("/admin/users", payload)} />
         </FormCard>
 
-        <section className="rounded-lg border border-brand-border bg-white p-5">
+        <section className="rounded-lg border border-brand-border bg-white p-4 sm:p-5">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">
             Recent Users
           </p>
@@ -44,12 +44,12 @@ export default function UsersPage() {
           <div className="mt-4 grid gap-2 text-sm">
             {data.users.length ? (
               data.users.slice(0, 12).map((user) => (
-                <div key={user.id} className="flex items-center justify-between gap-3 rounded-md bg-brand-surface px-3 py-2">
-                  <div>
+                <div key={user.id} className="grid gap-2 rounded-md bg-brand-surface px-3 py-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                  <div className="min-w-0">
                     <p className="font-semibold">{user.name}</p>
-                    <p className="text-xs text-brand-muted">{user.email}</p>
+                    <p className="break-all text-xs text-brand-muted">{user.email}</p>
                   </div>
-                  <span className="rounded-md bg-brand-surface-strong px-2 py-1 text-xs font-semibold text-brand-primary-dark">
+                  <span className="w-fit rounded-md bg-brand-surface-strong px-2 py-1 text-xs font-semibold text-brand-primary-dark">
                     {user.role}
                   </span>
                 </div>

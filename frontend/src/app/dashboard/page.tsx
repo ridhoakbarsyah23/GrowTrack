@@ -168,7 +168,7 @@ export default function Dashboard() {
     const token = localStorage.getItem("growtrack_token");
 
     if (!token) {
-      router.replace("/");
+      router.replace("/login");
       return;
     }
 
@@ -186,7 +186,7 @@ export default function Dashboard() {
       if (response.status === 401) {
         localStorage.removeItem("growtrack_token");
         localStorage.removeItem("growtrack_user");
-        router.replace("/");
+        router.replace("/login");
         return;
       }
 
@@ -336,6 +336,7 @@ export default function Dashboard() {
   const role = data.current_user.role;
   const isLearner = ["student", "employee", "fresh_graduate"].includes(role);
   const isReviewer = ["admin", "mentor"].includes(role);
+  const learnerNeedsAssessment = Boolean(isLearner && featuredProfile && !featuredProfile.assessment.summary);
   const dashboardTitle = isLearner
     ? `Career companion kamu, ${data.current_user.name}.`
     : "Pantau data karir yang tersimpan di backend.";
@@ -400,6 +401,22 @@ export default function Dashboard() {
               <p className="mt-4 max-w-2xl text-base leading-7 text-brand-muted">
                 {dashboardBody}
               </p>
+              {learnerNeedsAssessment ? (
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <Link
+                    href="/assessment"
+                    className="inline-flex h-10 items-center rounded-md bg-brand-primary-dark px-4 text-sm font-semibold text-white hover:bg-brand-primary-deep"
+                  >
+                    Kerjakan assessment
+                  </Link>
+                  <a
+                    href="#journey"
+                    className="inline-flex h-10 items-center rounded-md border border-brand-border-strong px-4 text-sm font-semibold text-brand-primary-dark hover:bg-white"
+                  >
+                    Lihat roadmap awal
+                  </a>
+                </div>
+              ) : null}
               <div className="mt-5 grid gap-3 sm:grid-cols-4">
                 {isLearner && featuredProfile ? (
                   <>
@@ -423,6 +440,7 @@ export default function Dashboard() {
 
           {featuredProfile ? (
             <>
+              {learnerNeedsAssessment ? <AssessmentNudge profile={featuredProfile} /> : null}
               <CoachInsightPanel insight={coachInsight} />
               <section id="skill-gap">
                 <SkillGapPanel profile={featuredProfile} />
@@ -671,6 +689,7 @@ function LearnerSummary({ profile, orders }: { profile: UserProfile; orders: Lea
   const latestSubmission = profile.submissions[0];
   const highestGap = profile.assessment.skill_gap_summary?.highest_gap ?? profile.assessment.skill_gaps[0] ?? null;
   const nextRoadmap = profile.roadmap_progress[0];
+  const needsAssessment = !profile.assessment.summary;
 
   return (
     <Panel title="Career Snapshot" eyebrow="Pathly AI">
@@ -687,9 +706,9 @@ function LearnerSummary({ profile, orders }: { profile: UserProfile; orders: Lea
       </div>
       <div className="mt-3 rounded-lg border border-brand-border p-4">
         <p className="text-sm font-semibold">Fokus berikutnya</p>
-        <p className="mt-2 text-lg font-semibold">{nextRoadmap?.title ?? highestGap?.skill ?? "Kerjakan assessment"}</p>
+        <p className="mt-2 text-lg font-semibold">{needsAssessment ? "Kerjakan assessment" : nextRoadmap?.title ?? highestGap?.skill ?? "Kerjakan assessment"}</p>
         <p className="mt-1 text-sm text-brand-muted">
-          {nextRoadmap?.priority_reason ?? "Assessment membantu Pathly AI menyusun prioritas roadmap kamu."}
+          {needsAssessment ? "Assessment membantu Pathly AI menyusun prioritas roadmap kamu." : nextRoadmap?.priority_reason ?? "Assessment membantu Pathly AI menyusun prioritas roadmap kamu."}
         </p>
       </div>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -707,6 +726,30 @@ function LearnerSummary({ profile, orders }: { profile: UserProfile; orders: Lea
         </div>
       </div>
     </Panel>
+  );
+}
+
+function AssessmentNudge({ profile }: { profile: UserProfile }) {
+  return (
+    <section className="animate-card-in rounded-lg border border-brand-border bg-white p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-3xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">
+            Langkah pertama
+          </p>
+          <h2 className="mt-2 text-xl font-semibold">Lengkapi assessment untuk membuka skill gap personal.</h2>
+          <p className="mt-2 text-sm leading-6 text-brand-muted">
+            Profil {profile.career_goal} sudah dibuat. Setelah assessment disubmit, dashboard akan menampilkan gap skill, urutan roadmap prioritas, dan insight coach yang lebih relevan.
+          </p>
+        </div>
+        <Link
+          href="/assessment"
+          className="inline-flex h-10 items-center rounded-md bg-brand-primary-dark px-4 text-sm font-semibold text-white hover:bg-brand-primary-deep"
+        >
+          Mulai assessment
+        </Link>
+      </div>
+    </section>
   );
 }
 

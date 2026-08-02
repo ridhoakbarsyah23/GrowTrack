@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { PublicFooter } from "./components/PublicFooter";
 import { PublicNav } from "./components/PublicNav";
 
 type Audience = "student" | "employee" | "fresh_graduate";
@@ -81,7 +82,12 @@ type LearningProduct = {
   duration: string | null;
   scheduled_at: string | null;
   seat_limit: number | null;
-  status: "active" | "inactive";
+  status: "draft" | "active" | "inactive";
+};
+
+type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
 };
 
 const audienceLabel: Record<Audience, string> = {
@@ -169,8 +175,11 @@ export default function HomePage() {
   );
   const primaryCtaHref = authToken ? "/dashboard" : "/register";
   const primaryCtaLabel = authToken ? "Buka Dashboard" : "Buat Career Profile";
+  const helpdeskUrl = process.env.NEXT_PUBLIC_HELPDESK_URL ?? "mailto:support@pathly.ai";
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api";
 
   return (
+    <>
     <main className="min-h-screen bg-brand-panel-soft text-brand-text">
       <PublicNav />
 
@@ -202,6 +211,14 @@ export default function HomePage() {
               >
                 Lihat Assessment
               </Link>
+              <a
+                href={helpdeskUrl}
+                target={externalTarget(helpdeskUrl)}
+                rel={externalRel(helpdeskUrl)}
+                className="inline-flex h-12 w-full items-center justify-center rounded-lg border border-brand-border-strong bg-brand-panel-soft px-5 text-sm font-bold text-brand-primary-dark transition hover:-translate-y-1 hover:border-brand-primary hover:bg-white active:translate-y-0 active:scale-[0.98] sm:w-auto"
+              >
+                Helpdesk Support
+              </a>
             </div>
 
             <div className="mt-8 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
@@ -431,7 +448,174 @@ export default function HomePage() {
         </div>
       </section>
     </main>
+    <HelpdeskChatWidget apiUrl={baseUrl} handoffUrl={helpdeskUrl} />
+    <PublicFooter />
+    </>
   );
+}
+
+function HelpdeskChatWidget({ apiUrl, handoffUrl }: { apiUrl: string; handoffUrl: string }) {
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      role: "assistant",
+      content: "Halo, aku Helpdesk AI Pathly. Aku bisa bantu soal login, register, assessment, dashboard, checkout, dan pembayaran manual.",
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [handoff, setHandoff] = useState(false);
+
+  async function sendMessage() {
+    const message = input.trim();
+
+    if (!message || loading) {
+      return;
+    }
+
+    const nextMessages: ChatMessage[] = [...messages, { role: "user", content: message }];
+    setMessages(nextMessages);
+    setInput("");
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${apiUrl}/support/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          message,
+          history: messages.slice(-6),
+        }),
+      });
+      const payload = await response.json();
+
+      setMessages([
+        ...nextMessages,
+        {
+          role: "assistant",
+          content: response.ok
+            ? payload.message ?? "Aku belum bisa menjawab saat ini. Silakan hubungi helpdesk manusia."
+            : payload.message ?? "Helpdesk AI belum tersedia. Silakan hubungi helpdesk manusia.",
+        },
+      ]);
+      setHandoff(Boolean(payload.handoff) || !response.ok);
+    } catch {
+      setMessages([
+        ...nextMessages,
+        {
+          role: "assistant",
+          content: "Backend helpdesk belum bisa dihubungi. Silakan hubungi helpdesk manusia.",
+        },
+      ]);
+      setHandoff(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed bottom-4 right-4 z-40 sm:bottom-5 sm:right-5">
+      {open ? (
+        <section className="mb-3 w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-lg border border-brand-border-strong bg-white shadow-brand-float">
+          <div className="flex items-start justify-between gap-3 bg-brand-primary-dark px-4 py-3 text-white">
+            <div>
+              <p className="text-sm font-bold">Helpdesk AI</p>
+              <p className="mt-1 text-xs text-white/75">Support cepat untuk alur Pathly AI.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="grid h-8 w-8 place-items-center rounded-md text-white/80 hover:bg-white/10 hover:text-white"
+              aria-label="Tutup helpdesk"
+            >
+              x
+            </button>
+          </div>
+          <div className="max-h-80 space-y-3 overflow-y-auto bg-brand-panel-soft p-3">
+            {messages.map((message, index) => (
+              <div
+                key={`${message.role}-${index}`}
+                className={`rounded-lg px-3 py-2 text-sm leading-6 ${
+                  message.role === "user"
+                    ? "ml-8 bg-brand-primary-dark text-white"
+                    : "mr-8 border border-brand-border bg-white text-brand-muted"
+                }`}
+              >
+                {message.content}
+              </div>
+            ))}
+            {loading ? (
+              <p className="mr-8 rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-brand-muted">
+                Mengetik jawaban...
+              </p>
+            ) : null}
+          </div>
+          <div className="grid gap-2 border-t border-brand-border bg-white p-3">
+            <textarea
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  sendMessage();
+                }
+              }}
+              placeholder="Tulis pertanyaan..."
+              className="min-h-20 resize-none rounded-md border border-brand-border-strong px-3 py-2 text-sm outline-none focus:border-brand-primary-dark focus:ring-2 focus:ring-brand-focus"
+            />
+            <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+              <a
+                href={handoffUrl}
+                target={externalTarget(handoffUrl)}
+                rel={externalRel(handoffUrl)}
+                className={`inline-flex h-10 items-center justify-center rounded-md border border-brand-border-strong px-3 text-sm font-bold text-brand-primary-dark hover:bg-brand-surface ${handoff ? "" : "opacity-80"}`}
+              >
+                Hubungi CS
+              </a>
+              <button
+                type="button"
+                onClick={sendMessage}
+                disabled={loading || !input.trim()}
+                className="h-10 rounded-md bg-brand-primary-dark px-4 text-sm font-bold text-white hover:bg-brand-primary-deep disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Kirim
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : null}
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="inline-flex h-12 items-center gap-2 rounded-lg border border-brand-border-strong bg-white px-4 text-sm font-bold text-brand-primary-dark shadow-brand-float transition hover:-translate-y-1 hover:bg-brand-surface active:translate-y-0 active:scale-[0.98]"
+        aria-label="Buka helpdesk support Pathly AI"
+      >
+        <HelpdeskIcon />
+        <span className="hidden sm:inline">Helpdesk AI</span>
+      </button>
+    </div>
+  );
+}
+
+function HelpdeskIcon() {
+  return (
+    <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12a8.5 8.5 0 0 1-8.5 8.5H6l-3 2 1-4.5A8.5 8.5 0 1 1 21 12Z" />
+      <path d="M9 10a3 3 0 0 1 6 0c0 2-3 2-3 4" />
+      <path d="M12 17h.01" />
+    </svg>
+  );
+}
+
+function externalTarget(href: string) {
+  return href.startsWith("http") ? "_blank" : undefined;
+}
+
+function externalRel(href: string) {
+  return href.startsWith("http") ? "noreferrer" : undefined;
 }
 
 function subscribeToAuthToken(onStoreChange: () => void) {

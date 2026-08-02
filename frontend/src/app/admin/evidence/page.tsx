@@ -105,8 +105,8 @@ function EvidenceCard({
   }
 
   return (
-    <article className="animate-card-in rounded-lg border border-brand-border bg-white p-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <article className="animate-card-in rounded-lg border border-brand-border bg-white p-4 sm:p-5">
+      <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-primary-dark">
             {submission.learner_name} - {submission.career_goal}
@@ -115,7 +115,7 @@ function EvidenceCard({
           <p className="mt-1 text-sm font-semibold text-brand-muted">{submission.module_title}</p>
           <p className="mt-3 text-sm leading-6 text-brand-muted">{submission.description}</p>
         </div>
-        <span className={`rounded-md px-3 py-2 text-sm font-semibold ${statusClass(submission.status)}`}>
+        <span className={`w-fit rounded-md px-3 py-2 text-sm font-semibold ${statusClass(submission.status)}`}>
           {statusLabel(submission.status)}
         </span>
       </div>
@@ -132,11 +132,11 @@ function EvidenceCard({
         </p>
       ) : null}
 
-      <form className="mt-4 grid gap-3 md:grid-cols-[160px_140px_1fr_auto]" onSubmit={handleSubmit}>
+      <form className="mt-4 grid gap-3 lg:grid-cols-[160px_140px_minmax(0,1fr)_auto]" onSubmit={handleSubmit}>
         <select
           name="status"
           defaultValue={submission.status === "reviewed" ? "reviewed" : "reviewed"}
-          className="h-11 rounded-md border border-brand-border-strong bg-white px-3 text-sm outline-none focus:border-brand-primary-dark focus:ring-2 focus:ring-brand-focus"
+          className="h-11 w-full min-w-0 rounded-md border border-brand-border-strong bg-white px-3 text-sm outline-none focus:border-brand-primary-dark focus:ring-2 focus:ring-brand-focus"
         >
           <option value="reviewed">Reviewed</option>
           <option value="revision_needed">Revision Needed</option>
@@ -149,13 +149,13 @@ function EvidenceCard({
           max="100"
           defaultValue={submission.score ?? ""}
           placeholder="Score"
-          className="h-11 rounded-md border border-brand-border-strong bg-white px-3 text-sm outline-none focus:border-brand-primary-dark focus:ring-2 focus:ring-brand-focus"
+          className="h-11 w-full min-w-0 rounded-md border border-brand-border-strong bg-white px-3 text-sm outline-none focus:border-brand-primary-dark focus:ring-2 focus:ring-brand-focus"
         />
         <input
           name="review_notes"
           defaultValue={submission.review_notes ?? ""}
           placeholder="Catatan review"
-          className="h-11 rounded-md border border-brand-border-strong bg-white px-3 text-sm outline-none focus:border-brand-primary-dark focus:ring-2 focus:ring-brand-focus"
+          className="h-11 w-full min-w-0 rounded-md border border-brand-border-strong bg-white px-3 text-sm outline-none focus:border-brand-primary-dark focus:ring-2 focus:ring-brand-focus"
         />
         <button className="h-11 rounded-md bg-brand-primary-dark px-4 text-sm font-semibold text-white hover:bg-brand-primary-deep">
           Simpan Review

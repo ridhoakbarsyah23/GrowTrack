@@ -2,16 +2,22 @@
 
 use App\Http\Controllers\Api\CareerDashboardController;
 use App\Http\Controllers\Api\CareerCoachController;
+use App\Http\Controllers\Api\AppSettingsController;
+use App\Http\Controllers\Api\AdminAnalyticsController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AssessmentController;
 use App\Http\Controllers\Api\CommerceController;
 use App\Http\Controllers\Api\MentorFeedbackController;
+use App\Http\Controllers\Api\MasterDataImportController;
 use App\Http\Controllers\Api\PublicSummaryController;
+use App\Http\Controllers\Api\SupportChatController;
 use App\Http\Controllers\Api\UserJourneyController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/public-summary', PublicSummaryController::class);
+Route::post('/support/chat', SupportChatController::class);
+Route::get('/payment-settings', [AppSettingsController::class, 'paymentSettings']);
 Route::get('/products', [CommerceController::class, 'products']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/register-options', [AuthController::class, 'registerOptions']);
@@ -41,6 +47,9 @@ Route::middleware('auth.api')->group(function () {
 
 Route::middleware(['auth.api', 'admin'])->prefix('admin')->group(function () {
     Route::get('/bootstrap', [AdminController::class, 'bootstrap']);
+    Route::get('/analytics', AdminAnalyticsController::class);
+    Route::get('/master-data-import/preview', [MasterDataImportController::class, 'preview']);
+    Route::post('/master-data-import', [MasterDataImportController::class, 'import']);
     Route::post('/users', [AdminController::class, 'createUser']);
     Route::post('/career-goals', [AdminController::class, 'createCareerGoal']);
     Route::patch('/career-goals/{careerGoal}', [AdminController::class, 'updateCareerGoal']);
@@ -62,6 +71,7 @@ Route::middleware(['auth.api', 'admin'])->prefix('admin')->group(function () {
     Route::delete('/assessment-questions/{assessmentQuestion}', [AdminController::class, 'deleteAssessmentQuestion']);
     Route::get('/orders', [CommerceController::class, 'adminOrders']);
     Route::patch('/orders/{order}', [CommerceController::class, 'updateOrderStatus']);
+    Route::patch('/settings/manual-payment', [AppSettingsController::class, 'updateManualPayment']);
     Route::post('/products', [CommerceController::class, 'createProduct']);
     Route::patch('/products/{product}', [CommerceController::class, 'updateProduct']);
     Route::delete('/products/{product}', [CommerceController::class, 'deleteProduct']);

@@ -510,7 +510,7 @@ class CommerceController extends Controller
             'seat_limit' => ['nullable', 'integer', 'min:1'],
             'meeting_url' => ['nullable', 'url', 'max:255'],
             'material_url' => ['nullable', 'url', 'max:255'],
-            'status' => ['required', Rule::in(['active', 'inactive'])],
+            'status' => ['required', Rule::in(['draft', 'active', 'inactive'])],
         ]);
 
         $validated['slug'] = filled($validated['slug'] ?? null)
@@ -551,7 +551,50 @@ class CommerceController extends Controller
         $validated['meeting_url'] = $validated['meeting_url'] ?? null;
         $validated['material_url'] = $validated['material_url'] ?? null;
 
+        if ($validated['status'] === 'active') {
+            $publishIssue = $this->publishIssue($validated);
+
+            if ($publishIssue) {
+                abort(response()->json([
+                    'message' => $publishIssue,
+                ], Response::HTTP_UNPROCESSABLE_ENTITY));
+            }
+        }
+
         return $validated;
+    }
+
+    private function publishIssue(array $product): ?string
+    {
+        if ($product['price'] < 0) {
+            return 'Harga produk tidak valid.';
+        }
+
+        if ($product['type'] === 'course') {
+            if ((int) $product['lesson_count'] < 1) {
+                return 'Course active harus punya minimal 1 lesson.';
+            }
+
+            if (! filled($product['material_url'])) {
+                return 'Course active harus punya link materi.';
+            }
+        }
+
+        if ($product['type'] === 'webinar') {
+            if (! filled($product['scheduled_at'])) {
+                return 'Webinar active harus punya jadwal.';
+            }
+
+            if (! filled($product['meeting_url'])) {
+                return 'Webinar active harus punya link meeting.';
+            }
+
+            if (! filled($product['seat_limit']) || (int) $product['seat_limit'] < 1) {
+                return 'Webinar active harus punya kuota minimal 1 seat.';
+            }
+        }
+
+        return null;
     }
 
     private function productPayload(object $product): array

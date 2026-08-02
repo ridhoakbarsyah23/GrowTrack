@@ -23,6 +23,9 @@ class AdminController extends Controller
         }
 
         return response()->json([
+            'settings' => [
+                'manual_payment_instructions' => AppSettingsController::manualPaymentInstructions(),
+            ],
             'users' => DB::table('users')
                 ->select(['id', 'name', 'email', 'role', 'created_at'])
                 ->orderBy('name')

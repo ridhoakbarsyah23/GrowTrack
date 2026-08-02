@@ -86,6 +86,10 @@ export default function AdminOverviewPage() {
             Gunakan kartu ini untuk masuk ke halaman yang sesuai. Setiap halaman sudah dipisah agar input tidak menumpuk.
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <QuickLink href="/admin/setup" title="Buka Setup Wizard" body="Lihat urutan setup, status kesiapan, dan langkah berikutnya." />
+            <QuickLink href="/admin/analytics" title="Lihat Analytics" body="Pantau user, assessment, order, produk, dan evidence." />
+            <QuickLink href="/admin/settings" title="Atur Settings" body="Kelola instruksi pembayaran manual dari dashboard admin." />
+            <QuickLink href="/admin/import" title="Import Master Data" body="Preview dan import template data awal Pathly AI." />
             <QuickLink href="/admin/master-data" title="Isi Master Data" body="Career goal, skill, assessment template, dan roadmap." />
             <QuickLink href="/admin/assessment-setup" title="Atur Assessment" body="Target skill dan pertanyaan yang dipakai user." />
             <QuickLink href="/admin/products" title="Kelola Produk" body="Buat dan edit course atau webinar untuk katalog." />
@@ -150,7 +154,7 @@ function CheckStep({ done, title, body }: { done: boolean; title: string; body: 
           done ? "bg-brand-primary-dark text-white" : "bg-status-warning-bg text-status-warning-text"
         }`}
       >
-        {done ? "✓" : "!"}
+        {done ? "OK" : "!"}
       </div>
       <div>
         <p className="font-semibold">{title}</p>

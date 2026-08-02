@@ -42,9 +42,10 @@ export default function CheckoutPage() {
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
   const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api";
-  const manualPaymentInstructions = process.env.NEXT_PUBLIC_MANUAL_PAYMENT_INSTRUCTIONS
-    ?? "Instruksi transfer resmi belum dikonfigurasi. Hubungi admin untuk detail pembayaran.";
+  const fallbackManualPaymentInstructions = process.env.NEXT_PUBLIC_MANUAL_PAYMENT_INSTRUCTIONS
+    || "Instruksi transfer resmi belum dikonfigurasi. Hubungi admin untuk detail pembayaran.";
   const [products, setProducts] = useState<Product[]>([]);
+  const [manualPaymentInstructions, setManualPaymentInstructions] = useState(fallbackManualPaymentInstructions);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
@@ -61,18 +62,29 @@ export default function CheckoutPage() {
   useEffect(() => {
     async function loadProducts() {
       try {
-        const response = await fetch(`${baseUrl}/products`, {
-          headers: { Accept: "application/json" },
-          cache: "no-store",
-        });
+        const [productsResponse, settingsResponse] = await Promise.all([
+          fetch(`${baseUrl}/products`, {
+            headers: { Accept: "application/json" },
+            cache: "no-store",
+          }),
+          fetch(`${baseUrl}/payment-settings`, {
+            headers: { Accept: "application/json" },
+            cache: "no-store",
+          }),
+        ]);
 
-        if (!response.ok) {
+        if (!productsResponse.ok) {
           setError("Produk belum bisa dimuat dari backend.");
           return;
         }
 
-        const payload = await response.json();
+        const payload = await productsResponse.json();
         setProducts(payload.products ?? []);
+
+        if (settingsResponse.ok) {
+          const settings = await settingsResponse.json();
+          setManualPaymentInstructions(settings.manual_payment_instructions || fallbackManualPaymentInstructions);
+        }
       } catch {
         setError("Backend belum bisa dihubungi.");
       } finally {
@@ -81,7 +93,7 @@ export default function CheckoutPage() {
     }
 
     loadProducts();
-  }, [baseUrl]);
+  }, [baseUrl, fallbackManualPaymentInstructions]);
 
   function rememberCheckout() {
     localStorage.setItem("growtrack_checkout_slug", slug);

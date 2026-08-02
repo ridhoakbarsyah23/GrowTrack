@@ -9,18 +9,10 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Artisan::command('pathly:import-master-data {--file= : Path to master data JSON} {--dry-run : Validate without writing}', function () {
-    $path = $this->option('file') ?: storage_path('app/pathly-master-data-template.json');
-
-    if (! is_file($path)) {
-        $this->error("Master data file not found: {$path}");
-
-        return self::FAILURE;
-    }
-
     try {
-        $data = json_decode(file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+        $data = loadPathlyMasterData($this->option('file'));
     } catch (Throwable $exception) {
-        $this->error("Invalid JSON: {$exception->getMessage()}");
+        $this->error($exception->getMessage());
 
         return self::FAILURE;
     }
@@ -297,5 +289,25 @@ function importPathlyMasterData(array $data): void
             ],
         );
     }
+}
+}
+
+if (! function_exists('pathlyMasterDataTemplatePath')) {
+function pathlyMasterDataTemplatePath(?string $path = null): string
+{
+    return $path ?: storage_path('app/pathly-master-data-template.json');
+}
+}
+
+if (! function_exists('loadPathlyMasterData')) {
+function loadPathlyMasterData(?string $path = null): array
+{
+    $resolvedPath = pathlyMasterDataTemplatePath($path);
+
+    if (! is_file($resolvedPath)) {
+        throw new RuntimeException("Master data file not found: {$resolvedPath}");
+    }
+
+    return json_decode(file_get_contents($resolvedPath), true, 512, JSON_THROW_ON_ERROR);
 }
 }

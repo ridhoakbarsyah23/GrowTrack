@@ -16,6 +16,11 @@ type CareerGoal = {
 
 type LearnerRole = "student" | "fresh_graduate" | "employee";
 
+type ApiErrorPayload = {
+  message?: string;
+  errors?: Record<string, string[]>;
+};
+
 const roleOptions: Array<{ value: LearnerRole; label: string; currentPosition: string }> = [
   { value: "student", label: "Mahasiswa", currentPosition: "Mahasiswa" },
   { value: "fresh_graduate", label: "Fresh Graduate", currentPosition: "Fresh Graduate" },
@@ -97,7 +102,7 @@ export default function RegisterPage() {
       const payload = await response.json();
 
       if (!response.ok) {
-        setError(payload.message ?? "Register gagal.");
+        setError(getApiErrorMessage(payload, "Register gagal."));
         return;
       }
 
@@ -111,7 +116,7 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push("/dashboard");
+      router.push("/assessment");
     } catch {
       setError("Backend belum bisa dihubungi.");
     } finally {
@@ -244,6 +249,12 @@ export default function RegisterPage() {
       </div>
     </main>
   );
+}
+
+function getApiErrorMessage(payload: ApiErrorPayload, fallback: string) {
+  const firstFieldError = payload.errors ? Object.values(payload.errors).flat().find(Boolean) : null;
+
+  return firstFieldError ?? payload.message ?? fallback;
 }
 
 function Input(props: InputHTMLAttributes<HTMLInputElement>) {

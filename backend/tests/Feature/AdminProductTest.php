@@ -83,6 +83,61 @@ class AdminProductTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_draft_product_is_hidden_from_public_catalog_and_checkout(): void
+    {
+        $userToken = $this->tokenForRole('employee');
+        $productId = DB::table('learning_products')->insertGetId([
+            'type' => 'webinar',
+            'title' => 'Draft Career Session',
+            'slug' => 'draft-career-session',
+            'category' => 'Career',
+            'level' => 'Live Session',
+            'price' => 99000,
+            'description' => 'Sesi yang belum siap dipublish.',
+            'outcome' => 'Belum tampil untuk user.',
+            'lesson_count' => 1,
+            'duration' => '90 menit',
+            'seat_limit' => 20,
+            'status' => 'draft',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this
+            ->getJson('/api/products')
+            ->assertOk()
+            ->assertJsonMissing(['slug' => 'draft-career-session']);
+
+        $this
+            ->withHeader('Authorization', "Bearer {$userToken}")
+            ->postJson('/api/orders', [
+                'product_id' => $productId,
+                'payment_method' => 'manual_transfer',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Produk tidak tersedia.');
+    }
+
+    public function test_admin_cannot_publish_incomplete_product(): void
+    {
+        $token = $this->tokenForRole('admin');
+
+        $this
+            ->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/admin/products', [
+                'type' => 'webinar',
+                'title' => 'Incomplete Webinar',
+                'category' => 'Career',
+                'price' => 99000,
+                'description' => 'Webinar belum punya detail live session.',
+                'outcome' => 'Peserta punya action plan.',
+                'lesson_count' => 1,
+                'status' => 'active',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Webinar active harus punya jadwal.');
+    }
+
     private function tokenForRole(string $role): string
     {
         $userId = DB::table('users')->insertGetId([
