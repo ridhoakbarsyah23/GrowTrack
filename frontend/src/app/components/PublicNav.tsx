@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { LogoutConfirmModal } from "./LogoutConfirmModal";
@@ -78,7 +79,14 @@ export function PublicNav() {
         </div>
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-5 lg:py-4">
           <Link href="/" className="flex items-center gap-2 text-xl font-black text-brand-text transition hover:-translate-y-0.5">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-brand-accent to-brand-primary-hover text-sm text-white shadow-brand-logo-strong">P</span>
+            <Image
+              src="/brand/pathly-logo-mark.svg"
+              alt=""
+              width={36}
+              height={36}
+              className="h-9 w-9 shrink-0 rounded-lg shadow-brand-logo-strong"
+              aria-hidden="true"
+            />
             Pathly AI
           </Link>
 

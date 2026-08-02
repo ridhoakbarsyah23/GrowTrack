@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 
 export function PublicFooter() {
@@ -10,7 +11,14 @@ export function PublicFooter() {
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:grid-cols-2 sm:px-5 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr]">
         <div>
           <div className="flex items-center gap-2 text-xl font-black text-brand-text">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-brand-accent to-brand-primary-hover text-sm text-white shadow-brand-logo">P</span>
+            <Image
+              src="/brand/pathly-logo-mark.svg"
+              alt=""
+              width={36}
+              height={36}
+              className="h-9 w-9 shrink-0 rounded-lg shadow-brand-logo"
+              aria-hidden="true"
+            />
             Pathly AI
           </div>
           <p className="mt-4 max-w-sm text-sm leading-6 text-brand-muted">

@@ -1,0 +1,423 @@
+{
+  "version": "2026-08-02",
+  "notes": "Template data awal Pathly AI. Review dulu sebelum diinput ke database production.",
+  "career_goals": [
+    {
+      "key": "junior_frontend_developer",
+      "audience": "fresh_graduate",
+      "title": "Junior Frontend Developer",
+      "level": "Entry Level",
+      "summary": "Mempersiapkan learner untuk melamar role frontend pertama dengan dasar web, React/Next.js, Git, problem solving, dan portfolio evidence.",
+      "skill_targets": {
+        "html_css": 80,
+        "javascript_fundamentals": 75,
+        "react_nextjs_basics": 70,
+        "git_collaboration": 70,
+        "ui_implementation": 75,
+        "problem_solving": 70,
+        "portfolio_building": 80,
+        "communication": 65
+      },
+      "assessment_template_key": "frontend_readiness",
+      "roadmap_module_keys": [
+        "frontend_foundation",
+        "react_nextjs_practice",
+        "frontend_portfolio_project",
+        "frontend_interview_review"
+      ]
+    },
+    {
+      "key": "digital_marketing_specialist",
+      "audience": "fresh_graduate",
+      "title": "Digital Marketing Specialist",
+      "level": "Entry Level",
+      "summary": "Mempersiapkan learner untuk menjalankan campaign digital, membuat content plan, membaca analytics, dan membangun portfolio marketing.",
+      "skill_targets": {
+        "digital_campaign_planning": 78,
+        "content_strategy": 75,
+        "analytics_reading": 72,
+        "communication": 72,
+        "problem_solving": 68,
+        "time_management": 70,
+        "portfolio_building": 76
+      },
+      "assessment_template_key": "digital_marketing_readiness",
+      "roadmap_module_keys": [
+        "marketing_foundation",
+        "campaign_planning_practice",
+        "marketing_portfolio_project",
+        "marketing_review_optimization"
+      ]
+    },
+    {
+      "key": "team_lead_growth",
+      "audience": "employee",
+      "title": "Career Growth to Team Lead",
+      "level": "Mid Career",
+      "summary": "Membantu karyawan membangun kesiapan naik ke peran team lead melalui leadership, komunikasi, ownership, execution, dan stakeholder management.",
+      "skill_targets": {
+        "leadership": 82,
+        "stakeholder_management": 78,
+        "communication": 80,
+        "problem_solving": 76,
+        "time_management": 76,
+        "execution_ownership": 80,
+        "mentoring_feedback": 75
+      },
+      "assessment_template_key": "team_lead_readiness",
+      "roadmap_module_keys": [
+        "team_lead_foundation",
+        "execution_ownership_practice",
+        "stakeholder_communication_project",
+        "leadership_review_plan"
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "key": "html_css",
+      "name": "HTML & CSS",
+      "category": "Technical Skill",
+      "description": "Kemampuan membuat struktur halaman, styling responsif, layout, dan dasar aksesibilitas web."
+    },
+    {
+      "key": "javascript_fundamentals",
+      "name": "JavaScript Fundamentals",
+      "category": "Technical Skill",
+      "description": "Pemahaman variabel, function, array/object, asynchronous flow, DOM, dan logika dasar aplikasi web."
+    },
+    {
+      "key": "react_nextjs_basics",
+      "name": "React / Next.js Basics",
+      "category": "Technical Skill",
+      "description": "Kemampuan membangun UI berbasis komponen, routing dasar, state, props, dan integrasi data sederhana."
+    },
+    {
+      "key": "git_collaboration",
+      "name": "Git & Collaboration",
+      "category": "Workflow Skill",
+      "description": "Kemampuan memakai Git, branch, commit, pull request, dan workflow kolaborasi tim."
+    },
+    {
+      "key": "ui_implementation",
+      "name": "UI Implementation",
+      "category": "Technical Skill",
+      "description": "Kemampuan menerjemahkan design menjadi interface yang rapi, responsif, konsisten, dan usable."
+    },
+    {
+      "key": "problem_solving",
+      "name": "Problem Solving",
+      "category": "Analytical Skill",
+      "description": "Kemampuan memecah masalah, membuat prioritas, mencari akar masalah, dan memilih solusi realistis."
+    },
+    {
+      "key": "communication",
+      "name": "Communication",
+      "category": "Soft Skill",
+      "description": "Kemampuan menyampaikan ide, progress, kendala, dan keputusan secara jelas ke orang lain."
+    },
+    {
+      "key": "time_management",
+      "name": "Time Management",
+      "category": "Productivity Skill",
+      "description": "Kemampuan mengatur prioritas, deadline, fokus kerja, dan ritme eksekusi."
+    },
+    {
+      "key": "portfolio_building",
+      "name": "Portfolio Building",
+      "category": "Career Skill",
+      "description": "Kemampuan menyusun project evidence, studi kasus, resume, dan cerita impact yang siap direview."
+    },
+    {
+      "key": "digital_campaign_planning",
+      "name": "Digital Campaign Planning",
+      "category": "Marketing Skill",
+      "description": "Kemampuan menyusun objective, audience, channel, message, budget, dan timeline campaign digital."
+    },
+    {
+      "key": "content_strategy",
+      "name": "Content Strategy",
+      "category": "Marketing Skill",
+      "description": "Kemampuan merancang angle konten, calendar, format, dan distribusi untuk tujuan marketing."
+    },
+    {
+      "key": "analytics_reading",
+      "name": "Analytics Reading",
+      "category": "Analytical Skill",
+      "description": "Kemampuan membaca metrik performa seperti reach, CTR, conversion, retention, dan insight sederhana."
+    },
+    {
+      "key": "leadership",
+      "name": "Leadership",
+      "category": "Leadership Skill",
+      "description": "Kemampuan mengarahkan tim, mengambil keputusan, menjaga ownership, dan membantu anggota tim berkembang."
+    },
+    {
+      "key": "stakeholder_management",
+      "name": "Stakeholder Management",
+      "category": "Leadership Skill",
+      "description": "Kemampuan memahami kebutuhan stakeholder, menyelaraskan ekspektasi, dan mengelola komunikasi lintas pihak."
+    },
+    {
+      "key": "execution_ownership",
+      "name": "Execution Ownership",
+      "category": "Leadership Skill",
+      "description": "Kemampuan memastikan pekerjaan selesai, mengelola risiko, dan bertanggung jawab atas hasil."
+    },
+    {
+      "key": "mentoring_feedback",
+      "name": "Mentoring & Feedback",
+      "category": "Leadership Skill",
+      "description": "Kemampuan memberi arahan, feedback, dan coaching sederhana untuk membantu performa orang lain."
+    }
+  ],
+  "assessment_templates": [
+    {
+      "key": "frontend_readiness",
+      "audience": "fresh_graduate",
+      "title": "Frontend Career Readiness Assessment",
+      "description": "Mengukur kesiapan dasar learner untuk role Junior Frontend Developer.",
+      "question_count": 10,
+      "questions": [
+        {
+          "skill_key": "html_css",
+          "question": "Seberapa percaya diri kamu membuat layout responsif dari desain sederhana?",
+          "weight": 2,
+          "max_score": 5
+        },
+        {
+          "skill_key": "javascript_fundamentals",
+          "question": "Seberapa kuat pemahamanmu tentang function, array, object, dan async JavaScript?",
+          "weight": 2,
+          "max_score": 5
+        },
+        {
+          "skill_key": "react_nextjs_basics",
+          "question": "Seberapa siap kamu membangun halaman React/Next.js dengan component, props, state, dan fetch data?",
+          "weight": 2,
+          "max_score": 5
+        },
+        {
+          "skill_key": "git_collaboration",
+          "question": "Seberapa sering kamu memakai Git untuk commit, branch, dan kolaborasi project?",
+          "weight": 1,
+          "max_score": 5
+        },
+        {
+          "skill_key": "portfolio_building",
+          "question": "Seberapa siap portfolio kamu untuk ditunjukkan ke recruiter atau mentor?",
+          "weight": 2,
+          "max_score": 5
+        }
+      ]
+    },
+    {
+      "key": "digital_marketing_readiness",
+      "audience": "fresh_graduate",
+      "title": "Digital Marketing Readiness Assessment",
+      "description": "Mengukur kesiapan learner untuk merancang campaign, konten, dan membaca performa marketing.",
+      "question_count": 8,
+      "questions": [
+        {
+          "skill_key": "digital_campaign_planning",
+          "question": "Seberapa siap kamu menyusun objective, target audience, channel, dan timeline campaign?",
+          "weight": 2,
+          "max_score": 5
+        },
+        {
+          "skill_key": "content_strategy",
+          "question": "Seberapa percaya diri kamu membuat content plan untuk satu bulan?",
+          "weight": 2,
+          "max_score": 5
+        },
+        {
+          "skill_key": "analytics_reading",
+          "question": "Seberapa nyaman kamu membaca metrik campaign dan mengambil insight sederhana?",
+          "weight": 2,
+          "max_score": 5
+        },
+        {
+          "skill_key": "portfolio_building",
+          "question": "Seberapa siap kamu menyusun studi kasus campaign sebagai portfolio?",
+          "weight": 1,
+          "max_score": 5
+        }
+      ]
+    },
+    {
+      "key": "team_lead_readiness",
+      "audience": "employee",
+      "title": "Team Lead Readiness Assessment",
+      "description": "Mengukur kesiapan karyawan untuk naik ke peran team lead atau koordinator tim.",
+      "question_count": 8,
+      "questions": [
+        {
+          "skill_key": "leadership",
+          "question": "Seberapa siap kamu mengarahkan prioritas tim dan membantu anggota tim mengambil keputusan?",
+          "weight": 2,
+          "max_score": 5
+        },
+        {
+          "skill_key": "stakeholder_management",
+          "question": "Seberapa nyaman kamu menyelaraskan ekspektasi dengan atasan, tim, dan stakeholder lain?",
+          "weight": 2,
+          "max_score": 5
+        },
+        {
+          "skill_key": "execution_ownership",
+          "question": "Seberapa konsisten kamu memastikan pekerjaan selesai tepat waktu dan sesuai standar?",
+          "weight": 2,
+          "max_score": 5
+        },
+        {
+          "skill_key": "mentoring_feedback",
+          "question": "Seberapa sering kamu memberi feedback yang membantu orang lain bekerja lebih baik?",
+          "weight": 1,
+          "max_score": 5
+        }
+      ]
+    }
+  ],
+  "roadmap_modules": [
+    {
+      "key": "frontend_foundation",
+      "career_goal_key": "junior_frontend_developer",
+      "skill_key": "html_css",
+      "sequence": 1,
+      "title": "Web Foundation Refresh",
+      "module_type": "Foundation",
+      "duration_hours": 6,
+      "outcome": "Learner mampu membuat halaman responsif sederhana dengan HTML, CSS, dan prinsip UI dasar."
+    },
+    {
+      "key": "react_nextjs_practice",
+      "career_goal_key": "junior_frontend_developer",
+      "skill_key": "react_nextjs_basics",
+      "sequence": 2,
+      "title": "React and Next.js Practice",
+      "module_type": "Practice",
+      "duration_hours": 10,
+      "outcome": "Learner membangun mini app dengan component, state, routing, dan integrasi API sederhana."
+    },
+    {
+      "key": "frontend_portfolio_project",
+      "career_goal_key": "junior_frontend_developer",
+      "skill_key": "portfolio_building",
+      "sequence": 3,
+      "title": "Frontend Portfolio Case Study",
+      "module_type": "Project",
+      "duration_hours": 12,
+      "outcome": "Learner menghasilkan satu project portfolio dengan README, screenshot, dan penjelasan keputusan teknis."
+    },
+    {
+      "key": "frontend_interview_review",
+      "career_goal_key": "junior_frontend_developer",
+      "skill_key": "communication",
+      "sequence": 4,
+      "title": "Interview and Portfolio Review",
+      "module_type": "Review",
+      "duration_hours": 4,
+      "outcome": "Learner siap menjelaskan project, proses belajar, dan area pengembangan di sesi interview."
+    },
+    {
+      "key": "marketing_foundation",
+      "career_goal_key": "digital_marketing_specialist",
+      "skill_key": "digital_campaign_planning",
+      "sequence": 1,
+      "title": "Digital Marketing Foundation",
+      "module_type": "Foundation",
+      "duration_hours": 6,
+      "outcome": "Learner memahami funnel, audience, channel, objective, dan struktur campaign digital."
+    },
+    {
+      "key": "campaign_planning_practice",
+      "career_goal_key": "digital_marketing_specialist",
+      "skill_key": "content_strategy",
+      "sequence": 2,
+      "title": "Campaign and Content Plan Practice",
+      "module_type": "Practice",
+      "duration_hours": 8,
+      "outcome": "Learner membuat campaign brief, content calendar, dan pesan utama untuk satu target audience."
+    },
+    {
+      "key": "marketing_portfolio_project",
+      "career_goal_key": "digital_marketing_specialist",
+      "skill_key": "portfolio_building",
+      "sequence": 3,
+      "title": "Marketing Portfolio Case Study",
+      "module_type": "Project",
+      "duration_hours": 10,
+      "outcome": "Learner menyusun studi kasus campaign lengkap dengan objective, eksekusi, metrik, dan insight."
+    },
+    {
+      "key": "marketing_review_optimization",
+      "career_goal_key": "digital_marketing_specialist",
+      "skill_key": "analytics_reading",
+      "sequence": 4,
+      "title": "Analytics Review and Optimization",
+      "module_type": "Review",
+      "duration_hours": 5,
+      "outcome": "Learner mampu membaca hasil campaign dan menyusun rekomendasi optimasi berikutnya."
+    },
+    {
+      "key": "team_lead_foundation",
+      "career_goal_key": "team_lead_growth",
+      "skill_key": "leadership",
+      "sequence": 1,
+      "title": "Leadership Foundation",
+      "module_type": "Foundation",
+      "duration_hours": 6,
+      "outcome": "Learner memahami peran team lead, ownership, komunikasi prioritas, dan ritme kerja tim."
+    },
+    {
+      "key": "execution_ownership_practice",
+      "career_goal_key": "team_lead_growth",
+      "skill_key": "execution_ownership",
+      "sequence": 2,
+      "title": "Execution Ownership Practice",
+      "module_type": "Practice",
+      "duration_hours": 8,
+      "outcome": "Learner membuat sistem tracking pekerjaan, risiko, dan follow-up untuk satu inisiatif tim."
+    },
+    {
+      "key": "stakeholder_communication_project",
+      "career_goal_key": "team_lead_growth",
+      "skill_key": "stakeholder_management",
+      "sequence": 3,
+      "title": "Stakeholder Communication Project",
+      "module_type": "Project",
+      "duration_hours": 8,
+      "outcome": "Learner menyusun update progress, decision log, dan komunikasi risiko untuk stakeholder."
+    },
+    {
+      "key": "leadership_review_plan",
+      "career_goal_key": "team_lead_growth",
+      "skill_key": "mentoring_feedback",
+      "sequence": 4,
+      "title": "Leadership Review and Growth Plan",
+      "module_type": "Review",
+      "duration_hours": 4,
+      "outcome": "Learner punya rencana pengembangan leadership dan feedback plan untuk anggota tim."
+    }
+  ],
+  "products": [
+    {
+      "key": "career_readiness_review_session",
+      "type": "webinar",
+      "title": "Career Readiness Review Session",
+      "slug": "career-readiness-review-session",
+      "category": "Career Review",
+      "level": "Live Session",
+      "price": 99000,
+      "description": "Sesi live untuk mereview readiness score, skill gap, roadmap prioritas, dan rencana aksi karier.",
+      "outcome": "Peserta memahami prioritas pengembangan berikutnya dan punya action plan 14 hari.",
+      "lesson_count": 1,
+      "duration": "90 menit",
+      "scheduled_at": null,
+      "seat_limit": 30,
+      "meeting_url": null,
+      "material_url": null,
+      "status": "draft"
+    }
+  ]
+}
