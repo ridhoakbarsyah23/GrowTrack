@@ -135,6 +135,7 @@ export default function MasterDataPage() {
           <RoadmapForm
             key={editingModule?.id ?? "new-module"}
             goals={data.career_goals}
+            skills={data.skills}
             module={editingModule}
             onSubmit={saveModule}
           />
@@ -183,7 +184,7 @@ export default function MasterDataPage() {
           items={data.roadmap_modules.map((module) => ({
             id: module.id,
             title: `${module.sequence}. ${module.title}`,
-            meta: `${module.career_goal} - ${module.module_type} - ${module.duration_hours} jam`,
+            meta: `${module.career_goal} - ${module.focus_skill ?? "Tanpa fokus skill"} - ${module.module_type} - ${module.duration_hours} jam`,
             body: module.outcome,
             onEdit: () => setEditingModule(module),
             onDelete: () => requestAdmin("DELETE", `/admin/roadmap-modules/${module.id}`),

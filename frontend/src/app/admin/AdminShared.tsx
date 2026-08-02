@@ -14,11 +14,13 @@ import { LogoutConfirmModal } from "../components/LogoutConfirmModal";
 
 export type CareerGoal = {
   id: number;
-  audience: string;
+  audience: LearnerRole;
   title: string;
   level: string;
   summary: string;
 };
+
+type LearnerRole = "student" | "employee" | "fresh_graduate";
 
 export type AdminData = {
   users: Array<{ id: number; name: string; email: string; role: string }>;
@@ -28,8 +30,10 @@ export type AdminData = {
   roadmap_modules: Array<{
     id: number;
     career_goal_id: number;
+    skill_id: number | null;
     title: string;
     career_goal: string;
+    focus_skill: string | null;
     sequence: number;
     module_type: string;
     duration_hours: number;
@@ -93,8 +97,12 @@ export type AdminData = {
     id: number;
     name: string;
     email: string;
-    role: "employee" | "fresh_graduate";
+    role: LearnerRole;
+    education: string | null;
     current_position: string | null;
+    experience_summary: string | null;
+    self_reported_skills: string | null;
+    interests: string | null;
     target_position: string;
     career_goal: string;
   }>;
@@ -258,9 +266,9 @@ export function AdminShell({
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-border">
             Admin Console
           </p>
-          <h1 className="mt-2 text-2xl font-semibold">GrowTrack</h1>
+          <h1 className="mt-2 text-2xl font-semibold">Pathly AI</h1>
           <p className="mt-2 text-sm leading-5 text-white/70">
-            Area operasional untuk data, user, catalog, review evidence, dan mentor feedback.
+            Area operasional untuk profil karier, skill target, assessment, roadmap, dan feedback mentor.
           </p>
           <nav className="mt-6 grid gap-2 text-sm font-medium">
             <AdminNavLink href="/admin" active={pathname === "/admin"}>Overview</AdminNavLink>
@@ -365,7 +373,7 @@ export function LoadingAdmin() {
           G
         </div>
         <p className="mt-4 text-sm font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">
-          GrowTrack Admin
+          Pathly AI Admin
         </p>
         <p className="mt-2 text-lg font-semibold">Memuat data admin...</p>
         <div className="mt-5 grid gap-3 text-left">
@@ -536,6 +544,7 @@ export function CareerGoalForm({
   return (
     <form className="grid gap-3" onSubmit={handleSubmit}>
       <Select name="audience" defaultValue={goal?.audience ?? "employee"} required>
+        <option value="student">Mahasiswa</option>
         <option value="employee">Karyawan</option>
         <option value="fresh_graduate">Fresh Graduate</option>
       </Select>
@@ -597,6 +606,7 @@ export function AssessmentForm({
   return (
     <form className="grid gap-3" onSubmit={handleSubmit}>
       <Select name="audience" defaultValue={template?.audience ?? "employee"} required>
+        <option value="student">Mahasiswa</option>
         <option value="employee">Karyawan</option>
         <option value="fresh_graduate">Fresh Graduate</option>
       </Select>
@@ -610,10 +620,12 @@ export function AssessmentForm({
 
 export function RoadmapForm({
   goals,
+  skills,
   module,
   onSubmit,
 }: {
   goals: CareerGoal[];
+  skills: AdminData["skills"];
   module?: AdminData["roadmap_modules"][number] | null;
   onSubmit: (payload: Record<string, unknown>) => void;
 }) {
@@ -623,6 +635,7 @@ export function RoadmapForm({
     onSubmit({
       ...Object.fromEntries(form),
       career_goal_id: Number(form.get("career_goal_id")),
+      skill_id: numberOrNull(form.get("skill_id")),
       sequence: Number(form.get("sequence")),
       duration_hours: Number(form.get("duration_hours")),
     });
@@ -639,6 +652,14 @@ export function RoadmapForm({
         {goals.map((goal) => (
           <option key={goal.id} value={goal.id}>
             {goal.title}
+          </option>
+        ))}
+      </Select>
+      <Select name="skill_id" defaultValue={module?.skill_id ?? ""}>
+        <option value="">Tanpa fokus skill khusus</option>
+        {skills.map((skill) => (
+          <option key={skill.id} value={skill.id}>
+            {skill.name}
           </option>
         ))}
       </Select>
@@ -696,7 +717,8 @@ export function UserForm({
         </button>
       </div>
       <Select name="role" required>
-        <option value="employee">Employee</option>
+        <option value="student">Mahasiswa</option>
+        <option value="employee">Karyawan</option>
         <option value="fresh_graduate">Fresh Graduate</option>
         <option value="mentor">Mentor</option>
         <option value="hr">HR</option>
@@ -710,8 +732,12 @@ export function UserForm({
           </option>
         ))}
       </Select>
+      <Input name="education" placeholder="Pendidikan terakhir atau jurusan" />
       <Input name="department" placeholder="Department" />
       <Input name="current_position" placeholder="Current position" />
+      <Textarea name="experience_summary" placeholder="Ringkasan pengalaman" />
+      <Textarea name="self_reported_skills" placeholder="Skill awal user" />
+      <Textarea name="interests" placeholder="Minat karier user" />
       <Input name="target_position" placeholder="Target position" />
       <SubmitButton />
     </form>

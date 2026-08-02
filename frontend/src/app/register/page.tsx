@@ -1,6 +1,6 @@
 "use client";
 
-import type { FormEvent, InputHTMLAttributes } from "react";
+import type { FormEvent, InputHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,16 +8,24 @@ import { PublicNav } from "../components/PublicNav";
 
 type CareerGoal = {
   id: number;
-  audience: "employee" | "fresh_graduate";
+  audience: LearnerRole;
   title: string;
   level: string;
   summary: string;
 };
 
+type LearnerRole = "student" | "fresh_graduate" | "employee";
+
+const roleOptions: Array<{ value: LearnerRole; label: string; currentPosition: string }> = [
+  { value: "student", label: "Mahasiswa", currentPosition: "Mahasiswa" },
+  { value: "fresh_graduate", label: "Fresh Graduate", currentPosition: "Fresh Graduate" },
+  { value: "employee", label: "Karyawan", currentPosition: "Belum diisi" },
+];
+
 export default function RegisterPage() {
   const router = useRouter();
   const [goals, setGoals] = useState<CareerGoal[]>([]);
-  const [role, setRole] = useState<"employee" | "fresh_graduate">("employee");
+  const [role, setRole] = useState<LearnerRole>("student");
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -61,6 +69,7 @@ export default function RegisterPage() {
     const form = new FormData(event.currentTarget);
     const careerGoalId = Number(form.get("career_goal_id"));
     const selectedGoal = goals.find((goal) => goal.id === careerGoalId);
+    const selectedRole = roleOptions.find((option) => option.value === role);
 
     try {
       const response = await fetch(`${baseUrl}/register`, {
@@ -75,8 +84,12 @@ export default function RegisterPage() {
           password: form.get("password"),
           role,
           career_goal_id: careerGoalId,
-          department: null,
-          current_position: role === "employee" ? "Belum diisi" : "Fresh Graduate",
+          education: form.get("education"),
+          department: role === "employee" ? form.get("department") : null,
+          current_position: form.get("current_position") || selectedRole?.currentPosition || "Belum diisi",
+          experience_summary: form.get("experience_summary"),
+          self_reported_skills: form.get("self_reported_skills"),
+          interests: form.get("interests"),
           target_position: selectedGoal?.title ?? "Belum diisi",
         }),
       });
@@ -112,14 +125,14 @@ export default function RegisterPage() {
       <div className="mx-auto grid min-h-[calc(100vh-73px)] max-w-6xl items-center gap-8 px-5 py-8 lg:grid-cols-[0.9fr_1.1fr]">
         <section>
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">
-            GrowTrack Register
+            Pathly AI Register
           </p>
           <h1 className="mt-3 max-w-2xl text-4xl font-semibold leading-tight md:text-6xl">
-            Daftar dan lihat career journey milikmu.
+            Mulai dari profil karier, bukan sekadar pilih kelas.
           </h1>
           <p className="mt-4 max-w-xl text-base leading-7 text-brand-muted">
-            Cukup pilih tipe akun dan career goal. Detail profile bisa dilengkapi
-            lewat dashboard setelah akun berhasil dibuat.
+            Isi pendidikan, pengalaman, skill, minat, dan target karier supaya
+            Pathly AI punya fondasi awal untuk membaca arah pengembanganmu.
           </p>
           <Link
             href="/login"
@@ -130,11 +143,11 @@ export default function RegisterPage() {
         </section>
 
         <section className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-brand-primary-dark">Create account</p>
-          <h2 className="mt-1 text-2xl font-semibold">Register singkat</h2>
+          <p className="text-sm font-semibold text-brand-primary-dark">Career onboarding</p>
+          <h2 className="mt-1 text-2xl font-semibold">Bangun profil awal</h2>
           <p className="mt-2 text-sm leading-6 text-brand-muted">
-            Isi 5 data utama. Setelah register, sistem langsung membuat profile
-            career awal berdasarkan goal yang dipilih.
+            Data ini menjadi dasar Career Profile, Skill Gap Analysis, dan roadmap
+            personal pada tahap berikutnya.
           </p>
 
           {optionsLoading ? (
@@ -144,29 +157,21 @@ export default function RegisterPage() {
           ) : null}
 
           <form className="mt-6 grid gap-4" onSubmit={handleRegister}>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => setRole("employee")}
-                className={`rounded-md border px-3 py-2 text-sm font-semibold ${
-                  role === "employee"
-                    ? "border-brand-primary-dark bg-brand-surface-strong text-brand-primary-dark"
-                    : "border-brand-border-strong text-brand-muted"
-                }`}
-              >
-                Employee
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole("fresh_graduate")}
-                className={`rounded-md border px-3 py-2 text-sm font-semibold ${
-                  role === "fresh_graduate"
-                    ? "border-brand-primary-dark bg-brand-surface-strong text-brand-primary-dark"
-                    : "border-brand-border-strong text-brand-muted"
-                }`}
-              >
-                Fresh Graduate
-              </button>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {roleOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setRole(option.value)}
+                  className={`rounded-md border px-3 py-2 text-sm font-semibold ${
+                    role === option.value
+                      ? "border-brand-primary-dark bg-brand-surface-strong text-brand-primary-dark"
+                      : "border-brand-border-strong text-brand-muted"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
 
             <Input name="name" placeholder="Nama lengkap" required />
@@ -189,13 +194,25 @@ export default function RegisterPage() {
                 {showPassword ? <EyeOffIcon /> : <EyeIcon />}
               </button>
             </div>
+            <Input name="education" placeholder="Pendidikan terakhir atau jurusan" required />
+            {role === "employee" ? <Input name="department" placeholder="Departemen atau fungsi kerja" /> : null}
+            <Input
+              key={role}
+              name="current_position"
+              placeholder={role === "employee" ? "Posisi saat ini" : "Status saat ini"}
+              defaultValue={roleOptions.find((option) => option.value === role)?.currentPosition}
+              required
+            />
+            <Textarea name="experience_summary" placeholder="Ringkas pengalaman, organisasi, magang, atau pekerjaan" />
+            <Textarea name="self_reported_skills" placeholder="Skill yang sudah kamu punya, pisahkan dengan koma" required />
+            <Textarea name="interests" placeholder="Minat karier atau bidang yang ingin dieksplorasi" required />
 
             <select
               name="career_goal_id"
               className="h-11 rounded-md border border-brand-border-strong bg-white px-3 text-sm outline-none focus:border-brand-primary-dark focus:ring-2 focus:ring-brand-focus"
               required
             >
-              <option value="">Pilih career goal</option>
+              <option value="">Pilih target karier 3-5 tahun</option>
               {filteredGoals.map((goal) => (
                 <option key={goal.id} value={goal.id}>
                   {goal.title} - {goal.level}
@@ -205,7 +222,7 @@ export default function RegisterPage() {
 
             {!filteredGoals.length && !optionsLoading ? (
               <p className="rounded-md border border-status-warning-border bg-status-warning-bg px-3 py-2 text-sm text-status-warning-text">
-                Belum ada career goal untuk tipe user ini. Admin perlu membuat career goal dulu.
+                Belum ada target karier untuk tipe user ini. Admin perlu membuat career goal dulu.
               </p>
             ) : null}
 
@@ -220,7 +237,7 @@ export default function RegisterPage() {
               disabled={loading || !filteredGoals.length}
               className="h-11 rounded-md bg-brand-primary-dark px-4 text-sm font-semibold text-white transition hover:bg-brand-primary-deep disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {loading ? "Mendaftarkan..." : "Register"}
+              {loading ? "Mendaftarkan..." : "Buat Career Profile"}
             </button>
           </form>
         </section>
@@ -234,6 +251,15 @@ function Input(props: InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className="h-11 rounded-md border border-brand-border-strong bg-white px-3 text-sm outline-none focus:border-brand-primary-dark focus:ring-2 focus:ring-brand-focus"
+    />
+  );
+}
+
+function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea
+      {...props}
+      className="min-h-24 rounded-md border border-brand-border-strong bg-white px-3 py-2 text-sm outline-none focus:border-brand-primary-dark focus:ring-2 focus:ring-brand-focus"
     />
   );
 }

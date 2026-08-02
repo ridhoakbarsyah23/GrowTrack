@@ -3,8 +3,8 @@ import { PublicFooter } from "./components/PublicFooter";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "GrowTrack",
-  description: "Career growth system for promotion readiness and job readiness.",
+  title: "Pathly AI",
+  description: "AI Career Companion for personalized career assessment, skill gap analysis, and roadmaps.",
 };
 
 export default function RootLayout({

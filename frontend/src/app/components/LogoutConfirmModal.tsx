@@ -76,6 +76,14 @@ function getLogoutContent(role: string) {
     };
   }
 
+  if (role === "student") {
+    return {
+      title: "Keluar dari dashboard mahasiswa?",
+      body: "Sesi kamu akan ditutup. Career profile, assessment, dan roadmap yang sudah tersimpan tetap aman.",
+      confirmLabel: "Ya, logout",
+    };
+  }
+
   if (role === "employee") {
     return {
       title: "Keluar dari dashboard karyawan?",
@@ -85,7 +93,7 @@ function getLogoutContent(role: string) {
   }
 
   return {
-    title: "Keluar dari GrowTrack?",
+    title: "Keluar dari Pathly AI?",
     body: "Sesi kamu akan ditutup. Data yang sudah tersimpan tetap aman di database.",
     confirmLabel: "Ya, logout",
   };

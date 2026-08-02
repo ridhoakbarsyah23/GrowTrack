@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\CareerDashboardController;
+use App\Http\Controllers\Api\CareerCoachController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AssessmentController;
@@ -23,6 +24,7 @@ Route::middleware('auth.api')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/career-dashboard', CareerDashboardController::class);
+    Route::get('/career-coach/insight', [CareerCoachController::class, 'insight']);
     Route::get('/orders/my', [CommerceController::class, 'myOrders']);
     Route::post('/orders', [CommerceController::class, 'createOrder']);
     Route::get('/assessment/current', [AssessmentController::class, 'current']);

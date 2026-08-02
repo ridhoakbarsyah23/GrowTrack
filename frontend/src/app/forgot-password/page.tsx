@@ -49,7 +49,7 @@ export default function ForgotPasswordPage() {
     <main className="min-h-screen bg-brand-surface text-brand-text">
       <PublicNav />
       <section className="mx-auto mt-10 w-full max-w-lg rounded-lg border border-brand-border bg-white p-5 shadow-sm">
-        <p className="text-sm font-semibold text-brand-primary-dark">GrowTrack</p>
+        <p className="text-sm font-semibold text-brand-primary-dark">Pathly AI</p>
         <h1 className="mt-1 text-2xl font-semibold">Forgot Password</h1>
         <p className="mt-2 text-sm leading-6 text-brand-muted">
           Masukkan email akunmu. Untuk mode development, token reset akan tampil di halaman ini.

@@ -1,9 +1,12 @@
-# GrowTrack
+# Pathly AI
 
-GrowTrack adalah sistem pengembangan karir untuk dua jalur utama:
+Pathly AI adalah AI Career Companion untuk membantu pengguna menyusun arah karier,
+mengukur kompetensi, menemukan skill gap, dan mengikuti roadmap pengembangan yang
+dipersonalisasi.
 
-- Karyawan yang ingin naik jabatan atau pindah level karir.
+- Mahasiswa yang ingin mempersiapkan dunia kerja dan menentukan jalur karier.
 - Fresh graduate yang ingin siap masuk dunia kerja.
+- Karyawan yang ingin naik jabatan atau pindah level karir.
 
 Stack awal:
 
@@ -104,6 +107,16 @@ DB_USERNAME=root
 DB_PASSWORD=
 ```
 
+Pathly AI Career Coach berjalan dalam mode rule-based secara default. Untuk mengaktifkan enhancement OpenAI, isi `.env` backend:
+
+```env
+AI_COACH_ENABLED=true
+OPENAI_API_KEY=isi_api_key_di_local_env
+OPENAI_MODEL=gpt-5
+```
+
+Jangan commit nilai `OPENAI_API_KEY`. Jika konfigurasi Laravel pernah di-cache, jalankan `php artisan config:clear` setelah mengubah `.env`.
+
 Sebelum migrate dengan MySQL, buat database-nya:
 
 ```sql
@@ -137,7 +150,7 @@ Halaman utama adalah login. Setelah login berhasil, frontend masuk ke:
 http://localhost:3000/dashboard
 ```
 
-User baru bisa register di:
+User baru bisa register dan membuat career profile awal di:
 
 ```text
 http://localhost:3000/register
@@ -158,7 +171,15 @@ http://localhost:3000/reset-password
 
 Untuk mode development, endpoint forgot password mengembalikan reset token langsung di response. Nanti saat email service sudah disiapkan, token ini bisa dikirim lewat email.
 
-Register membutuhkan career goal yang sudah dibuat admin. User dengan role `employee` atau `fresh_graduate` akan melihat profile career miliknya sendiri di dashboard.
+Register membutuhkan career goal yang sudah dibuat admin. User dengan role `student`, `fresh_graduate`, atau `employee` akan melihat profile career miliknya sendiri di dashboard.
+
+Data onboarding awal mengikuti PRD:
+
+- Pendidikan.
+- Pengalaman.
+- Skill.
+- Minat.
+- Target karier.
 
 Admin masuk ke halaman input data:
 
@@ -190,7 +211,7 @@ Urutan input data yang disarankan:
 4. Buat assessment template.
 5. Buat assessment questions.
 6. Buat roadmap modules.
-7. Buat user employee/fresh graduate dan pilih career goal.
+7. Buat user mahasiswa/fresh graduate/karyawan dan pilih career goal.
 
 ## Fitur Yang Sudah Disiapkan
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Support\ApiToken;
+use App\Support\SkillGapAnalysis;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -11,6 +12,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class CareerDashboardController extends Controller
 {
+    private const LEARNER_ROLES = ['student', 'fresh_graduate', 'employee'];
+
     public function __invoke(Request $request)
     {
         $currentUser = ApiToken::user($request);
@@ -43,9 +46,11 @@ class CareerDashboardController extends Controller
 
         $roadmap = DB::table('roadmap_modules')
             ->join('career_goals', 'career_goals.id', '=', 'roadmap_modules.career_goal_id')
+            ->leftJoin('skills', 'skills.id', '=', 'roadmap_modules.skill_id')
             ->select([
                 'roadmap_modules.id',
                 'career_goals.title as career_goal',
+                'skills.name as focus_skill',
                 'roadmap_modules.sequence',
                 'roadmap_modules.title',
                 'roadmap_modules.module_type',
@@ -72,8 +77,12 @@ class CareerDashboardController extends Controller
                 'users.name',
                 'users.email',
                 'user_profiles.role',
+                'user_profiles.education',
                 'user_profiles.department',
                 'user_profiles.current_position',
+                'user_profiles.experience_summary',
+                'user_profiles.self_reported_skills',
+                'user_profiles.interests',
                 'user_profiles.target_position',
                 'career_goals.title as career_goal',
                 'assessment_results.overall_score',
@@ -85,7 +94,7 @@ class CareerDashboardController extends Controller
             ])
             ->orderBy('user_profiles.role');
 
-        if (in_array($currentUser->role, ['employee', 'fresh_graduate'], true)) {
+        if (in_array($currentUser->role, self::LEARNER_ROLES, true)) {
             $profileQuery->where('user_profiles.user_id', $currentUser->id);
         }
 
@@ -116,22 +125,39 @@ class CareerDashboardController extends Controller
     private function buildProfile(object $profile): array
     {
         $this->ensureRoadmapProgress($profile);
+        $skillScores = collect(json_decode($profile->skill_scores ?: '{}', true));
+        $skillGapAnalysis = SkillGapAnalysis::forProfile((int) $profile->id, $skillScores);
 
         $progress = DB::table('roadmap_progress')
             ->join('roadmap_modules', 'roadmap_modules.id', '=', 'roadmap_progress.roadmap_module_id')
+            ->leftJoin('skills', 'skills.id', '=', 'roadmap_modules.skill_id')
             ->where('roadmap_progress.user_profile_id', $profile->id)
             ->select([
                 'roadmap_progress.id',
                 'roadmap_progress.roadmap_module_id',
+                'roadmap_modules.sequence',
                 'roadmap_modules.title',
                 'roadmap_modules.module_type',
                 'roadmap_modules.duration_hours',
+                'roadmap_modules.outcome',
+                'skills.name as focus_skill',
                 'roadmap_progress.status',
                 'roadmap_progress.progress_percent',
                 'roadmap_progress.due_date',
             ])
             ->orderBy('roadmap_modules.sequence')
-            ->get();
+            ->get()
+            ->map(fn ($item) => $this->personalizeRoadmapItem($item, $skillGapAnalysis['items']))
+            ->sortBy([
+                ['priority_rank', 'desc'],
+                ['sequence', 'asc'],
+            ])
+            ->values()
+            ->map(function (array $item, int $index) {
+                $item['recommended_order'] = $index + 1;
+
+                return $item;
+            });
 
         $submissions = DB::table('project_submissions')
             ->join('roadmap_modules', 'roadmap_modules.id', '=', 'project_submissions.roadmap_module_id')
@@ -149,26 +175,6 @@ class CareerDashboardController extends Controller
             ->orderByDesc('project_submissions.created_at')
             ->get();
 
-        $skillScores = collect(json_decode($profile->skill_scores ?: '{}', true));
-        $targetSkills = DB::table('career_goal_skill')
-            ->join('skills', 'skills.id', '=', 'career_goal_skill.skill_id')
-            ->join('user_profiles', 'user_profiles.career_goal_id', '=', 'career_goal_skill.career_goal_id')
-            ->where('user_profiles.id', $profile->id)
-            ->select(['skills.name', 'career_goal_skill.target_score'])
-            ->get();
-
-        $skillGaps = $targetSkills->map(function ($skill) use ($skillScores) {
-            $current = (int) ($skillScores[$skill->name] ?? 0);
-            $target = (int) $skill->target_score;
-
-            return [
-                'skill' => $skill->name,
-                'current_score' => $current,
-                'target_score' => $target,
-                'gap' => max($target - $current, 0),
-            ];
-        })->values();
-
         $assessmentScore = (int) ($profile->overall_score ?? 0);
         $roadmapProgress = round($progress->avg('progress_percent') ?? 0);
         $projectEvidence = round($submissions->avg('score') ?? 0);
@@ -185,15 +191,20 @@ class CareerDashboardController extends Controller
             'name' => $profile->name,
             'email' => $profile->email,
             'role' => $profile->role,
+            'education' => $profile->education,
             'department' => $profile->department,
             'current_position' => $profile->current_position,
+            'experience_summary' => $profile->experience_summary,
+            'self_reported_skills' => $profile->self_reported_skills,
+            'interests' => $profile->interests,
             'target_position' => $profile->target_position,
             'career_goal' => $profile->career_goal,
             'assessment' => [
                 'overall_score' => $assessmentScore,
                 'summary' => $profile->assessment_summary,
                 'skill_scores' => $skillScores,
-                'skill_gaps' => $skillGaps,
+                'skill_gaps' => $skillGapAnalysis['items'],
+                'skill_gap_summary' => $skillGapAnalysis['summary'],
             ],
             'roadmap_progress_score' => $roadmapProgress,
             'project_evidence_score' => $projectEvidence,
@@ -252,5 +263,43 @@ class CareerDashboardController extends Controller
             ->flatMap(fn ($user) => $user['assessment']['skill_gaps'])
             ->sortByDesc('gap')
             ->first();
+    }
+
+    private function personalizeRoadmapItem(object $item, Collection $skillGaps): array
+    {
+        $matchedGap = $this->matchedGap($item, $skillGaps);
+        $gapValue = (int) ($matchedGap['gap'] ?? 0);
+
+        return [
+            'id' => $item->id,
+            'roadmap_module_id' => $item->roadmap_module_id,
+            'sequence' => $item->sequence,
+            'title' => $item->title,
+            'module_type' => $item->module_type,
+            'duration_hours' => $item->duration_hours,
+            'outcome' => $item->outcome,
+            'focus_skill' => $item->focus_skill,
+            'status' => $item->status,
+            'progress_percent' => $item->progress_percent,
+            'due_date' => $item->due_date,
+            'related_gap' => $matchedGap,
+            'priority_rank' => $gapValue,
+            'priority_reason' => $matchedGap
+                ? "Diprioritaskan karena gap {$matchedGap['skill']} masih {$gapValue} poin."
+                : 'Urutan mengikuti roadmap dasar career goal.',
+        ];
+    }
+
+    private function matchedGap(object $item, Collection $skillGaps): ?array
+    {
+        if ($item->focus_skill) {
+            return $skillGaps->firstWhere('skill', $item->focus_skill);
+        }
+
+        $haystack = strtolower("{$item->title} {$item->outcome} {$item->module_type}");
+
+        return $skillGaps->first(function (array $gap) use ($haystack) {
+            return str_contains($haystack, strtolower($gap['skill']));
+        });
     }
 }

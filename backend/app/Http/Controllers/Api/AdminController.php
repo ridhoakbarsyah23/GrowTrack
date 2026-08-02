@@ -12,6 +12,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class AdminController extends Controller
 {
+    private const LEARNER_ROLES = ['student', 'fresh_graduate', 'employee'];
+
     public function bootstrap(Request $request)
     {
         $admin = $this->admin($request);
@@ -40,10 +42,13 @@ class AdminController extends Controller
                 ->get(),
             'roadmap_modules' => DB::table('roadmap_modules')
                 ->join('career_goals', 'career_goals.id', '=', 'roadmap_modules.career_goal_id')
+                ->leftJoin('skills', 'skills.id', '=', 'roadmap_modules.skill_id')
                 ->select([
                     'roadmap_modules.id',
                     'roadmap_modules.career_goal_id',
+                    'roadmap_modules.skill_id',
                     'career_goals.title as career_goal',
+                    'skills.name as focus_skill',
                     'roadmap_modules.sequence',
                     'roadmap_modules.title',
                     'roadmap_modules.module_type',
@@ -139,11 +144,15 @@ class AdminController extends Controller
                     'users.name',
                     'users.email',
                     'user_profiles.role',
+                    'user_profiles.education',
                     'user_profiles.current_position',
+                    'user_profiles.experience_summary',
+                    'user_profiles.self_reported_skills',
+                    'user_profiles.interests',
                     'user_profiles.target_position',
                     'career_goals.title as career_goal',
                 ])
-                ->whereIn('user_profiles.role', ['employee', 'fresh_graduate'])
+                ->whereIn('user_profiles.role', self::LEARNER_ROLES)
                 ->orderBy('users.name')
                 ->get(),
             'mentor_feedback' => DB::table('mentor_feedback')
@@ -178,11 +187,15 @@ class AdminController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'role' => ['required', Rule::in(['admin', 'hr', 'mentor', 'employee', 'fresh_graduate'])],
+            'role' => ['required', Rule::in(['admin', 'hr', 'mentor', ...self::LEARNER_ROLES])],
             'password' => ['required', 'string', 'min:8'],
             'career_goal_id' => ['nullable', 'exists:career_goals,id'],
+            'education' => ['nullable', 'string', 'max:255'],
             'department' => ['nullable', 'string', 'max:255'],
             'current_position' => ['nullable', 'string', 'max:255'],
+            'experience_summary' => ['nullable', 'string'],
+            'self_reported_skills' => ['nullable', 'string'],
+            'interests' => ['nullable', 'string'],
             'target_position' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -195,13 +208,17 @@ class AdminController extends Controller
             'updated_at' => now(),
         ]);
 
-        if (! empty($validated['career_goal_id']) && in_array($validated['role'], ['employee', 'fresh_graduate'], true)) {
+        if (! empty($validated['career_goal_id']) && in_array($validated['role'], self::LEARNER_ROLES, true)) {
             $profileId = DB::table('user_profiles')->insertGetId([
                 'user_id' => $userId,
                 'career_goal_id' => $validated['career_goal_id'],
                 'role' => $validated['role'],
+                'education' => $validated['education'] ?? null,
                 'department' => $validated['department'] ?? null,
                 'current_position' => $validated['current_position'] ?? null,
+                'experience_summary' => $validated['experience_summary'] ?? null,
+                'self_reported_skills' => $validated['self_reported_skills'] ?? null,
+                'interests' => $validated['interests'] ?? null,
                 'target_position' => $validated['target_position'] ?? 'Target Position',
                 'status' => 'active',
                 'created_at' => now(),
@@ -221,7 +238,7 @@ class AdminController extends Controller
         }
 
         $validated = $request->validate([
-            'audience' => ['required', Rule::in(['employee', 'fresh_graduate'])],
+            'audience' => ['required', Rule::in(self::LEARNER_ROLES)],
             'title' => ['required', 'string', 'max:255'],
             'level' => ['required', 'string', 'max:255'],
             'summary' => ['required', 'string'],
@@ -245,7 +262,7 @@ class AdminController extends Controller
         }
 
         $validated = $request->validate([
-            'audience' => ['required', Rule::in(['employee', 'fresh_graduate'])],
+            'audience' => ['required', Rule::in(self::LEARNER_ROLES)],
             'title' => ['required', 'string', 'max:255'],
             'level' => ['required', 'string', 'max:255'],
             'summary' => ['required', 'string'],
@@ -345,7 +362,7 @@ class AdminController extends Controller
         }
 
         $validated = $request->validate([
-            'audience' => ['required', Rule::in(['employee', 'fresh_graduate'])],
+            'audience' => ['required', Rule::in(self::LEARNER_ROLES)],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
             'question_count' => ['required', 'integer', 'min:1', 'max:100'],
@@ -369,7 +386,7 @@ class AdminController extends Controller
         }
 
         $validated = $request->validate([
-            'audience' => ['required', Rule::in(['employee', 'fresh_graduate'])],
+            'audience' => ['required', Rule::in(self::LEARNER_ROLES)],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
             'question_count' => ['required', 'integer', 'min:1', 'max:100'],
@@ -409,6 +426,7 @@ class AdminController extends Controller
 
         $validated = $request->validate([
             'career_goal_id' => ['required', 'exists:career_goals,id'],
+            'skill_id' => ['nullable', 'exists:skills,id'],
             'sequence' => ['required', 'integer', 'min:1', 'max:255'],
             'title' => ['required', 'string', 'max:255'],
             'module_type' => ['required', 'string', 'max:255'],
@@ -435,6 +453,7 @@ class AdminController extends Controller
 
         $validated = $request->validate([
             'career_goal_id' => ['required', 'exists:career_goals,id'],
+            'skill_id' => ['nullable', 'exists:skills,id'],
             'sequence' => ['required', 'integer', 'min:1', 'max:255'],
             'title' => ['required', 'string', 'max:255'],
             'module_type' => ['required', 'string', 'max:255'],

@@ -64,17 +64,17 @@ export default function LoginPage() {
             Secure Access
           </p>
           <h1 className="mt-3 max-w-2xl text-4xl font-semibold leading-tight md:text-6xl">
-            Masuk ke dashboard GrowTrack.
+            Masuk ke dashboard Pathly AI.
           </h1>
           <p className="mt-4 max-w-xl text-base leading-7 text-brand-muted">
-            Gunakan akun admin, HR, mentor, employee, atau fresh graduate untuk mengakses
-            data karir dan readiness report sesuai role.
+            Gunakan akun admin, HR, mentor, mahasiswa, fresh graduate, atau karyawan
+            untuk mengakses profil karier dan readiness report sesuai role.
           </p>
         </div>
 
         <section className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
           <p className="text-sm font-semibold text-brand-primary-dark">Welcome back</p>
-          <h2 className="mt-1 text-2xl font-semibold">Login GrowTrack</h2>
+          <h2 className="mt-1 text-2xl font-semibold">Login Pathly AI</h2>
 
           <form className="mt-6 grid gap-4" onSubmit={handleLogin}>
             <label className="grid gap-2">

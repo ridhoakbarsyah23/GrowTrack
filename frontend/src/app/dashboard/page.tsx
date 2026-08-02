@@ -6,21 +6,39 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogoutConfirmModal } from "../components/LogoutConfirmModal";
 
-type Audience = "employee" | "fresh_graduate";
+type Audience = "student" | "employee" | "fresh_graduate";
 type Goal = { id: number; audience: Audience; title: string; level: string; summary: string; module_count: number; total_hours: number };
 type Skill = { id: number; name: string; category: string; description: string };
 type Assessment = { id: number; audience: Audience; title: string; description: string; question_count: number };
-type RoadmapModule = { id: number; career_goal: string; sequence: number; title: string; module_type: string; duration_hours: number; outcome: string };
-type SkillGap = { skill: string; current_score: number; target_score: number; gap: number };
+type RoadmapModule = { id: number; career_goal: string; focus_skill: string | null; sequence: number; title: string; module_type: string; duration_hours: number; outcome: string };
+type SkillGap = {
+  skill: string;
+  category?: string;
+  description?: string;
+  current_score: number;
+  target_score: number;
+  gap: number;
+  status?: "target_met" | "near_target" | "needs_practice" | "critical_gap";
+  severity?: string;
+  recommendation?: string;
+  target_source?: "configured" | "assessment_default";
+};
 type RoadmapProgress = {
   id: number;
   roadmap_module_id: number;
+  sequence: number;
+  recommended_order: number;
   title: string;
   module_type: string;
   duration_hours: number;
+  outcome: string;
+  focus_skill: string | null;
   status: "not_started" | "in_progress" | "completed";
   progress_percent: number;
   due_date: string | null;
+  related_gap: SkillGap | null;
+  priority_rank: number;
+  priority_reason: string;
 };
 type ProjectSubmission = {
   id: number;
@@ -56,11 +74,28 @@ type UserProfile = {
   name: string;
   email: string;
   role: Audience;
+  education: string | null;
   department: string | null;
   current_position: string;
+  experience_summary: string | null;
+  self_reported_skills: string | null;
+  interests: string | null;
   target_position: string;
   career_goal: string;
-  assessment: { overall_score: number; summary: string | null; skill_gaps: SkillGap[] };
+  assessment: {
+    overall_score: number;
+    summary: string | null;
+    skill_gaps: SkillGap[];
+    skill_gap_summary?: {
+      total_skills: number;
+      met_target: number;
+      priority_count: number;
+      average_gap: number;
+      highest_gap: SkillGap | null;
+      target_source?: "configured" | "assessment_default";
+      default_target_score?: number | null;
+    };
+  };
   roadmap_progress_score: number;
   project_evidence_score: number;
   mentor_feedback_score: number;
@@ -81,11 +116,45 @@ type DashboardData = {
   hr_summary: { total_active_profiles: number; ready_or_almost_ready: number; average_readiness: number; highest_gap: SkillGap | null };
 };
 
-const audienceLabel = { employee: "Karyawan", fresh_graduate: "Fresh Graduate" };
+type CoachInsight = {
+  mode: "deterministic" | "openai";
+  provider_status: "disabled" | "missing_api_key" | "openai_enhanced" | "fallback";
+  model?: string;
+  fallback_reason?: string;
+  headline: string;
+  summary: string;
+  focus: {
+    skill: string | null;
+    gap: number | null;
+    reason: string;
+  };
+  next_roadmap: {
+    progress_id: number;
+    title: string;
+    module_type: string;
+    duration_hours: number;
+    outcome: string;
+    focus_skill: string | null;
+    priority_rank: number;
+    related_gap: SkillGap | null;
+    sequence: number;
+  } | null;
+  recommended_actions: string[];
+  signals: {
+    assessment_score: number;
+    target_source: "configured" | "assessment_default";
+    latest_submission: { title: string; status: string; score: number | null } | null;
+    mentor_feedback: { recommendation: string; score: number; notes: string } | null;
+  };
+  generated_at: string;
+};
+
+const audienceLabel: Record<Audience, string> = { student: "Mahasiswa", employee: "Karyawan", fresh_graduate: "Fresh Graduate" };
 
 export default function Dashboard() {
   const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
+  const [coachInsight, setCoachInsight] = useState<CoachInsight | null>(null);
   const [orders, setOrders] = useState<LearningOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -126,15 +195,27 @@ export default function Dashboard() {
         return;
       }
 
-      setData(await response.json());
+      const dashboardPayload = await response.json();
+      setData(dashboardPayload);
 
-      const ordersResponse = await fetch(`${baseUrl}/orders/my`, {
-        headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
-      });
+      const [ordersResponse, coachResponse] = await Promise.all([
+        fetch(`${baseUrl}/orders/my`, {
+          headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${baseUrl}/career-coach/insight`, {
+          headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+        }),
+      ]);
 
       if (ordersResponse.ok) {
         const ordersPayload = await ordersResponse.json();
         setOrders(ordersPayload.orders ?? []);
+      }
+
+      if (coachResponse.ok) {
+        setCoachInsight(await coachResponse.json());
+      } else {
+        setCoachInsight(null);
       }
     } catch {
       setError("Backend belum bisa dihubungi.");
@@ -223,7 +304,7 @@ export default function Dashboard() {
     setLogoutLoading(true);
     const token = localStorage.getItem("growtrack_token");
     const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api";
-    const roleLabel = data?.current_user.role === "fresh_graduate" ? "fresh graduate" : "karyawan";
+    const roleLabel = data?.current_user.role === "student" ? "mahasiswa" : data?.current_user.role === "fresh_graduate" ? "fresh graduate" : "karyawan";
 
     try {
       if (token) {
@@ -253,13 +334,13 @@ export default function Dashboard() {
   const featuredProfile = data.profiles[0];
   const secondProfile = data.profiles[1];
   const role = data.current_user.role;
-  const isLearner = ["employee", "fresh_graduate"].includes(role);
+  const isLearner = ["student", "employee", "fresh_graduate"].includes(role);
   const isReviewer = ["admin", "mentor"].includes(role);
   const dashboardTitle = isLearner
-    ? `Lanjutkan belajar, ${data.current_user.name}.`
+    ? `Career companion kamu, ${data.current_user.name}.`
     : "Pantau data karir yang tersimpan di backend.";
   const dashboardBody = isLearner
-    ? "Area ini fokus ke akses kelas, progress roadmap, evidence project, dan report readiness kamu."
+    ? "Mulai dari career profile, cek skill gap, lanjutkan roadmap personal, lalu kumpulkan evidence untuk mengukur readiness."
     : "Angka di dashboard ini berasal dari database. Jika admin menambah career goal, skill, assessment, roadmap, atau user, ringkasan ini ikut berubah setelah refresh.";
 
   return (
@@ -267,9 +348,9 @@ export default function Dashboard() {
       <div className="mx-auto grid max-w-7xl gap-5 px-4 py-5 md:grid-cols-[220px_1fr] md:px-6">
         <aside className="animate-admin-enter rounded-lg border border-brand-border bg-white p-4 md:sticky md:top-5 md:h-[calc(100vh-40px)]">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">
-            {isLearner ? "Learning Space" : "Control Dashboard"}
+            {isLearner ? "Career Space" : "Control Dashboard"}
           </p>
-          <h1 className="mt-2 text-2xl font-semibold">GrowTrack</h1>
+          <h1 className="mt-2 text-2xl font-semibold">Pathly AI</h1>
           <div className="mt-3 rounded-md bg-brand-surface-strong p-3">
             <p className="text-sm font-semibold">{data.current_user.name}</p>
             <p className="mt-1 text-xs text-brand-primary-dark">{role}</p>
@@ -278,13 +359,14 @@ export default function Dashboard() {
             <a className="rounded-md bg-brand-primary-dark px-3 py-2 text-white" href="#dashboard">
               {isLearner ? "Ringkasan" : "Dashboard"}
             </a>
-            <a className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="#kelas-saya">Kelas Saya</a>
+            <a className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="#skill-gap">Skill Gap</a>
             {isLearner ? (
               <a className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="#journey">Journey</a>
             ) : (
               <a className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="#career-goals">Career Data</a>
             )}
             <Link className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="/assessment">Assessment</Link>
+            <a className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="#rekomendasi">Rekomendasi</a>
             <a className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="#reports">Reports</a>
             {isReviewer ? (
               <Link className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="/evidence-review">Evidence Review</Link>
@@ -310,7 +392,7 @@ export default function Dashboard() {
           <section id="dashboard" className="grid gap-4 rounded-lg border border-brand-border bg-brand-surface-strong p-5 lg:grid-cols-[1.1fr_0.9fr]">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">
-                {isLearner ? "Learning Dashboard" : "Realtime Dashboard"}
+                {isLearner ? "AI Career Companion" : "Realtime Dashboard"}
               </p>
               <h2 className="mt-2 max-w-2xl text-3xl font-semibold leading-tight md:text-5xl">
                 {dashboardTitle}
@@ -339,43 +421,49 @@ export default function Dashboard() {
             {isLearner && featuredProfile ? <LearnerSummary profile={featuredProfile} orders={orders} /> : <LiveSummary data={data} />}
           </section>
 
-          <section id="kelas-saya" className="animate-card-in rounded-lg border border-brand-border bg-white p-5">
+          {featuredProfile ? (
+            <>
+              <CoachInsightPanel insight={coachInsight} />
+              <section id="skill-gap">
+                <SkillGapPanel profile={featuredProfile} />
+              </section>
+              <section id="journey" className={`grid gap-4 ${isLearner ? "" : "lg:grid-cols-[1.1fr_0.9fr]"}`}>
+                <ProfileCard
+                  profile={featuredProfile}
+                  canManageJourney={isLearner}
+                  journeyMessage={journeyMessage}
+                  journeyError={journeyError}
+                  onUpdateProgress={updateRoadmapProgress}
+                  onSubmitEvidence={submitProjectEvidence}
+                />
+                {isLearner ? null : <HrSummary data={data} />}
+              </section>
+            </>
+          ) : (
+            <EmptyState title="Belum ada profil karir" body="Masuk ke halaman Admin untuk membuat user mahasiswa, fresh graduate, atau karyawan dan memilih career goal." />
+          )}
+
+          <section id="rekomendasi" className="animate-card-in rounded-lg border border-brand-border bg-white p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">Learning Access</p>
-                <h2 className="mt-2 text-xl font-semibold">Kelas dan Webinar Saya</h2>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">Learning Recommendations</p>
+                <h2 className="mt-2 text-xl font-semibold">Aktivitas pendukung roadmap</h2>
                 <p className="mt-2 text-sm leading-6 text-brand-muted">
-                  Order pending menunggu konfirmasi admin. Setelah status paid, akses materi atau link webinar akan muncul.
+                  Course dan webinar tetap tersedia sebagai rekomendasi tambahan setelah arah karier, gap, dan roadmap utama terbaca.
                 </p>
               </div>
-              <Link href="/#kursus" className="rounded-md border border-brand-border-strong px-3 py-2 text-sm font-semibold text-brand-primary-dark hover:bg-brand-surface-strong">
-                Cari kelas
+              <Link href="/#assessment" className="rounded-md border border-brand-border-strong px-3 py-2 text-sm font-semibold text-brand-primary-dark hover:bg-brand-surface-strong">
+                Lihat assessment
               </Link>
             </div>
             <div className="mt-4 grid gap-3 lg:grid-cols-2">
               {orders.length ? (
                 orders.map((order) => <LearningOrderCard key={order.id} order={order} />)
               ) : (
-                <EmptyState title="Belum ada pembelian" body="Pilih course atau webinar dari katalog, lalu buat order checkout." />
+                <EmptyState title="Belum ada aktivitas berbayar" body="Gunakan assessment dan roadmap dulu. Rekomendasi course atau webinar bisa ditambahkan setelah kebutuhan skill lebih jelas." />
               )}
             </div>
           </section>
-
-          {featuredProfile ? (
-            <section id="journey" className={`grid gap-4 ${isLearner ? "" : "lg:grid-cols-[1.1fr_0.9fr]"}`}>
-              <ProfileCard
-                profile={featuredProfile}
-                canManageJourney={isLearner}
-                journeyMessage={journeyMessage}
-                journeyError={journeyError}
-                onUpdateProgress={updateRoadmapProgress}
-                onSubmitEvidence={submitProjectEvidence}
-              />
-              {isLearner ? null : <HrSummary data={data} />}
-            </section>
-          ) : (
-            <EmptyState title="Belum ada profil karir" body="Masuk ke halaman Admin untuk membuat user employee/fresh graduate dan memilih career goal." />
-          )}
 
           {!isLearner ? (
             <>
@@ -404,7 +492,7 @@ export default function Dashboard() {
                         <article key={module.id} className="rounded-lg border border-brand-border p-4">
                           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-primary-dark">{module.career_goal}</p>
                           <h3 className="mt-1 font-semibold">{module.sequence}. {module.title}</h3>
-                          <p className="mt-1 text-xs font-semibold text-brand-primary-dark">{module.module_type} - {module.duration_hours} jam</p>
+                          <p className="mt-1 text-xs font-semibold text-brand-primary-dark">{module.focus_skill ?? "General"} - {module.module_type} - {module.duration_hours} jam</p>
                           <p className="mt-2 text-sm leading-6 text-brand-muted">{module.outcome}</p>
                         </article>
                       ))}
@@ -475,7 +563,7 @@ function CenteredMessage({ title, body }: { title: string; body?: string }) {
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-lg bg-brand-primary-dark text-xl font-semibold text-white animate-refresh-pulse">
           G
         </div>
-        <p className="mt-4 text-sm font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">GrowTrack</p>
+        <p className="mt-4 text-sm font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">Pathly AI</p>
         <p className="mt-2 text-lg font-semibold">{title}</p>
         {body ? <p className="mt-2 text-sm leading-6 text-brand-muted">{body}</p> : null}
         {!body ? (
@@ -512,7 +600,7 @@ function LearningOrderCard({ order }: { order: LearningOrder }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-primary-dark">
-            {order.type === "webinar" ? "Webinar" : "Course"} - {order.invoice_number}
+            {order.type === "webinar" ? "Live activity" : "Course"} - {order.invoice_number}
           </p>
           <h3 className="mt-2 text-lg font-semibold">{order.title}</h3>
           <p className="mt-1 text-sm text-brand-muted">{order.category}</p>
@@ -581,26 +669,42 @@ function LearnerSummary({ profile, orders }: { profile: UserProfile; orders: Lea
   const paidOrders = orders.filter((order) => order.status === "paid").length;
   const activeRoadmap = profile.roadmap_progress.filter((progress) => progress.status !== "completed").length;
   const latestSubmission = profile.submissions[0];
+  const highestGap = profile.assessment.skill_gap_summary?.highest_gap ?? profile.assessment.skill_gaps[0] ?? null;
+  const nextRoadmap = profile.roadmap_progress[0];
 
   return (
-    <Panel title="Ringkasan Belajar" eyebrow="Progress Kamu">
+    <Panel title="Career Snapshot" eyebrow="Pathly AI">
       <div className="grid gap-3 sm:grid-cols-2">
-        <Metric label="Akses aktif" value={paidOrders} />
+        <Metric label="Gap prioritas" value={highestGap?.gap ?? 0} />
         <Metric label="Task berjalan" value={activeRoadmap} />
       </div>
       <div className="mt-3 rounded-lg border border-brand-border p-4">
-        <p className="text-sm font-semibold">Target belajar</p>
+        <p className="text-sm font-semibold">Target karier</p>
         <p className="mt-2 text-2xl font-semibold">{profile.target_position}</p>
         <p className="mt-1 text-sm leading-6 text-brand-muted">
           Goal utama: {profile.career_goal}
         </p>
       </div>
       <div className="mt-3 rounded-lg border border-brand-border p-4">
-        <p className="text-sm font-semibold">Evidence terbaru</p>
-        <p className="mt-2 text-lg font-semibold">{latestSubmission?.title ?? "Belum ada evidence"}</p>
+        <p className="text-sm font-semibold">Fokus berikutnya</p>
+        <p className="mt-2 text-lg font-semibold">{nextRoadmap?.title ?? highestGap?.skill ?? "Kerjakan assessment"}</p>
         <p className="mt-1 text-sm text-brand-muted">
-          {latestSubmission ? `Status ${latestSubmission.status}` : "Kirim project evidence dari bagian Journey."}
+          {nextRoadmap?.priority_reason ?? "Assessment membantu Pathly AI menyusun prioritas roadmap kamu."}
         </p>
+      </div>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-lg border border-brand-border p-4">
+          <p className="text-sm font-semibold">Evidence terbaru</p>
+          <p className="mt-2 text-sm font-semibold">{latestSubmission?.title ?? "Belum ada evidence"}</p>
+          <p className="mt-1 text-xs text-brand-muted">
+            {latestSubmission ? `Status ${latestSubmission.status}` : "Kirim project evidence dari bagian Journey."}
+          </p>
+        </div>
+        <div className="rounded-lg border border-brand-border p-4">
+          <p className="text-sm font-semibold">Akses rekomendasi</p>
+          <p className="mt-2 text-sm font-semibold">{paidOrders} aktif</p>
+          <p className="mt-1 text-xs text-brand-muted">Course atau webinar pendukung roadmap.</p>
+        </div>
       </div>
     </Panel>
   );
@@ -634,6 +738,71 @@ function LiveSummary({ data }: { data: DashboardData }) {
   );
 }
 
+function CoachInsightPanel({ insight }: { insight: CoachInsight | null }) {
+  const badgeText = !insight
+    ? "Belum tersedia"
+    : insight.mode === "openai"
+      ? "OpenAI enhanced"
+      : "Rule-based insight";
+
+  return (
+    <section className="animate-card-in rounded-lg border border-brand-border bg-white p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-3xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">
+            Coach Insight
+          </p>
+          <h2 className="mt-2 text-xl font-semibold">
+            {insight?.headline ?? "Pathly AI sedang menunggu sinyal karier kamu."}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-brand-muted">
+            {insight?.summary ?? "Kerjakan assessment dan mulai roadmap agar insight personal bisa dibuat dari data progress kamu."}
+          </p>
+        </div>
+        <span className="rounded-md bg-brand-surface-strong px-3 py-2 text-xs font-semibold text-brand-primary-dark">
+          {badgeText}
+        </span>
+      </div>
+
+      {insight ? (
+        <div className="mt-5 grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
+          <div className="grid gap-3">
+            <div className="rounded-lg border border-brand-border bg-brand-panel-soft p-4">
+              <p className="text-sm font-semibold">Fokus utama</p>
+              <p className="mt-2 text-2xl font-semibold">{insight.focus.skill ?? "Assessment"}</p>
+              <p className="mt-1 text-sm leading-6 text-brand-muted">{insight.focus.reason}</p>
+            </div>
+            <div className="rounded-lg border border-brand-border bg-brand-panel-soft p-4">
+              <p className="text-sm font-semibold">Roadmap berikutnya</p>
+              <p className="mt-2 text-lg font-semibold">{insight.next_roadmap?.title ?? "Belum ada roadmap aktif"}</p>
+              <p className="mt-1 text-sm leading-6 text-brand-muted">
+                {insight.next_roadmap
+                  ? `${insight.next_roadmap.module_type} - ${insight.next_roadmap.duration_hours} jam - ${insight.next_roadmap.outcome}`
+                  : "Tambahkan roadmap module dari Admin agar insight bisa memberi langkah berikutnya."}
+              </p>
+            </div>
+          </div>
+          <div className="rounded-lg border border-brand-border bg-brand-panel-soft p-4">
+            <p className="text-sm font-semibold">Aksi yang disarankan</p>
+            <div className="mt-3 grid gap-2">
+              {insight.recommended_actions.map((action) => (
+                <p key={action} className="rounded-md bg-white px-3 py-2 text-sm leading-6 text-brand-muted">
+                  {action}
+                </p>
+              ))}
+            </div>
+            {insight.provider_status === "fallback" ? (
+              <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+                OpenAI sementara tidak tersedia, insight ini memakai rule-based fallback.
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function ProfileCard({
   profile,
   canManageJourney,
@@ -650,16 +819,22 @@ function ProfileCard({
   onSubmitEvidence: (progressId: number, payload: { title: string; description: string }) => void;
 }) {
   return (
-    <Panel title="Active Career Journey" eyebrow={audienceLabel[profile.role]}>
+    <Panel title="Career Profile & Roadmap" eyebrow={audienceLabel[profile.role]}>
       <div className="grid gap-5">
         <div className="grid gap-4 md:grid-cols-[1fr_auto]">
           <div>
             <h3 className="text-2xl font-semibold">{profile.name}</h3>
             <p className="mt-1 text-sm text-brand-muted">{profile.email}</p>
             <div className="mt-4 grid gap-2 text-sm">
-              <p><span className="font-semibold">Current:</span> {profile.current_position}</p>
+              <p><span className="font-semibold">Pendidikan:</span> {profile.education ?? "-"}</p>
+              <p><span className="font-semibold">Saat ini:</span> {profile.current_position}</p>
               <p><span className="font-semibold">Target:</span> {profile.target_position}</p>
               <p><span className="font-semibold">Goal:</span> {profile.career_goal}</p>
+            </div>
+            <div className="mt-4 grid gap-2 text-sm leading-6 text-brand-muted md:grid-cols-3">
+              <p className="rounded-md bg-brand-surface px-3 py-2"><span className="font-semibold text-brand-text">Pengalaman:</span> {profile.experience_summary ?? "-"}</p>
+              <p className="rounded-md bg-brand-surface px-3 py-2"><span className="font-semibold text-brand-text">Skill awal:</span> {profile.self_reported_skills ?? "-"}</p>
+              <p className="rounded-md bg-brand-surface px-3 py-2"><span className="font-semibold text-brand-text">Minat:</span> {profile.interests ?? "-"}</p>
             </div>
             <p className="mt-4 text-sm leading-6 text-brand-muted">{profile.assessment.summary ?? "Assessment belum diisi."}</p>
             {!profile.assessment.summary ? (
@@ -701,6 +876,77 @@ function ProfileCard({
   );
 }
 
+function SkillGapPanel({ profile }: { profile: UserProfile }) {
+  const summary = profile.assessment.skill_gap_summary;
+  const gaps = profile.assessment.skill_gaps;
+
+  return (
+    <Panel title="Skill Gap Analysis" eyebrow={profile.career_goal}>
+      {gaps.length ? (
+        <div className="grid gap-4">
+          {summary?.target_source === "assessment_default" ? (
+            <p className="rounded-md border border-status-warning-border bg-status-warning-bg px-3 py-2 text-sm leading-6 text-status-warning-text">
+              Target skill resmi belum dikonfigurasi admin. Analisis ini memakai target sementara {summary.default_target_score ?? 80}% dari skill assessment.
+            </p>
+          ) : null}
+          <div className="grid gap-3 sm:grid-cols-4">
+            <Metric label="Target skill" value={summary?.total_skills ?? gaps.length} />
+            <Metric label="Terpenuhi" value={summary?.met_target ?? gaps.filter((gap) => gap.gap === 0).length} />
+            <Metric label="Prioritas" value={summary?.priority_count ?? gaps.filter((gap) => gap.gap >= 20).length} />
+            <Metric label="Avg gap" value={summary?.average_gap ?? Math.round(gaps.reduce((total, gap) => total + gap.gap, 0) / gaps.length)} />
+          </div>
+          <div className="grid gap-3">
+            {gaps.map((gap) => (
+              <article key={gap.skill} className="rounded-lg border border-brand-border bg-brand-panel-soft p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="font-semibold">{gap.skill}</h3>
+                    <p className="mt-1 text-xs font-semibold text-brand-primary-dark">
+                      {gap.category ?? "Skill"} - {gap.severity ?? gapStatusLabel(gap.gap)}
+                    </p>
+                  </div>
+                  <span className="rounded-md bg-white px-3 py-1 text-sm font-semibold text-brand-primary-dark">
+                    Gap {gap.gap}
+                  </span>
+                </div>
+                <div className="mt-4 h-3 overflow-hidden rounded-sm bg-white">
+                  <div className="h-full rounded-sm bg-brand-primary-dark transition-all" style={{ width: `${Math.min(gap.current_score, 100)}%` }} />
+                </div>
+                <div className="mt-2 flex flex-wrap justify-between gap-2 text-xs font-semibold text-brand-muted">
+                  <span>Saat ini {gap.current_score}%</span>
+                  <span>Target {gap.target_score}%</span>
+                </div>
+                {gap.target_source === "assessment_default" ? (
+                  <p className="mt-2 text-xs font-semibold text-status-warning-text">Target sementara dari assessment</p>
+                ) : null}
+                {gap.recommendation ? <p className="mt-3 text-sm leading-6 text-brand-muted">{gap.recommendation}</p> : null}
+              </article>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <EmptyState title="Skill gap belum tersedia" body="Kerjakan assessment dulu. Jika target skill admin belum ada, sistem akan memakai target sementara dari skill assessment." />
+      )}
+    </Panel>
+  );
+}
+
+function gapStatusLabel(gap: number) {
+  if (gap === 0) {
+    return "Sudah memenuhi target";
+  }
+
+  if (gap <= 10) {
+    return "Hampir memenuhi target";
+  }
+
+  if (gap <= 25) {
+    return "Perlu latihan terarah";
+  }
+
+  return "Prioritas utama";
+}
+
 function RoadmapJourney({
   progress,
   submissions,
@@ -726,8 +972,8 @@ function RoadmapJourney({
   return (
     <section className="grid gap-3">
       <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">Roadmap Progress</p>
-        <h3 className="mt-1 text-lg font-semibold">Update perjalanan belajar</h3>
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">Personalized Roadmap</p>
+        <h3 className="mt-1 text-lg font-semibold">Urutan modul diprioritaskan dari gap terbesar</h3>
       </div>
       {progress.map((item) => (
         <RoadmapProgressCard
@@ -776,10 +1022,16 @@ function RoadmapProgressCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-primary-dark">
-            {progress.module_type} - {progress.duration_hours} jam
+            #{progress.recommended_order} - {progress.focus_skill ?? "General"} - {progress.module_type} - {progress.duration_hours} jam
           </p>
           <h4 className="mt-2 font-semibold">{progress.title}</h4>
           <p className="mt-1 text-sm text-brand-muted">Status: {statusLabel(progress.status)}</p>
+          <p className="mt-2 text-sm leading-6 text-brand-muted">{progress.priority_reason}</p>
+          {progress.related_gap ? (
+            <p className="mt-2 rounded-md bg-white px-3 py-2 text-xs font-semibold text-brand-primary-dark">
+              Gap {progress.related_gap.skill}: {progress.related_gap.current_score}% ke {progress.related_gap.target_score}%
+            </p>
+          ) : null}
         </div>
         <span className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-brand-primary-dark">
           {progress.progress_percent}%

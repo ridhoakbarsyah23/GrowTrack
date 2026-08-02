@@ -7,7 +7,7 @@ type Profile = {
   id: number;
   name: string;
   email: string;
-  role: "employee" | "fresh_graduate";
+  role: "student" | "employee" | "fresh_graduate";
   current_position: string | null;
   target_position: string;
   career_goal: string;

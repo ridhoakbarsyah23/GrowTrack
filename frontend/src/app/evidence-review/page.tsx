@@ -196,7 +196,7 @@ function CenteredMessage({ title }: { title: string }) {
   return (
     <main className="grid min-h-screen place-items-center bg-brand-surface px-5 text-brand-text">
       <div className="rounded-lg border border-brand-border bg-white p-5 text-center shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">GrowTrack</p>
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-primary-dark">Pathly AI</p>
         <p className="mt-2 text-lg font-semibold">{title}</p>
       </div>
     </main>

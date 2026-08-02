@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { PublicNav } from "./components/PublicNav";
 
-type Audience = "employee" | "fresh_graduate";
+type Audience = "student" | "employee" | "fresh_graduate";
 
 type PublicData = {
   career_goals: number;
@@ -85,24 +85,25 @@ type LearningProduct = {
 };
 
 const audienceLabel: Record<Audience, string> = {
+  student: "Mahasiswa",
   employee: "Karyawan",
   fresh_graduate: "Fresh Graduate",
 };
 
 const checkoutSteps = [
-  { title: "Pilih produk", body: "User memilih course evergreen atau webinar terjadwal dari katalog." },
-  { title: "Checkout", body: "Sistem menyiapkan order, status pembayaran, dan kuota webinar." },
-  { title: "Akses aktif", body: "Setelah paid, course masuk dashboard dan webinar membuka link meeting." },
-  { title: "Pantau progress", body: "Admin melihat peserta, progress, assessment, dan feedback mentor." },
+  { title: "Assessment", body: "Pengguna mengisi pendidikan, pengalaman, skill, minat, dan target karier." },
+  { title: "Skill gap", body: "Sistem membandingkan skill saat ini dengan kompetensi target karier." },
+  { title: "Roadmap", body: "Modul belajar dan proyek disusun menjadi urutan pengembangan yang jelas." },
+  { title: "Progress", body: "Dashboard memantau readiness, evidence, dan feedback mentor secara berkala." },
 ];
 
 const businessFeatures = [
-  "Katalog course dan webinar",
-  "Dashboard pembelian user",
-  "Akses materi setelah bayar",
-  "Kuota dan jadwal webinar",
-  "Assessment dan roadmap belajar",
-  "Admin panel untuk operasional",
+  "Career Profile",
+  "Skill Gap Analysis",
+  "Personalized Roadmap",
+  "Progress Tracking",
+  "Project Evidence",
+  "Mentor Feedback",
 ];
 
 export default function HomePage() {
@@ -159,15 +160,15 @@ export default function HomePage() {
   );
   const liveMetrics = useMemo(
     () => [
-      { label: "Course siap jual", value: courseProducts.length },
-      { label: "Webinar aktif", value: webinarProducts.length },
+      { label: "Rekomendasi belajar", value: courseProducts.length },
+      { label: "Live activity", value: webinarProducts.length },
       { label: "Skill terukur", value: data?.skills },
-      { label: "Profil belajar", value: data?.active_profiles },
+      { label: "Career profile", value: data?.active_profiles },
     ],
     [courseProducts.length, data, webinarProducts.length],
   );
   const primaryCtaHref = authToken ? "/dashboard" : "/register";
-  const primaryCtaLabel = authToken ? "Buka Dashboard" : "Mulai Jualan";
+  const primaryCtaLabel = authToken ? "Buka Dashboard" : "Buat Career Profile";
 
   return (
     <main className="min-h-screen bg-brand-panel-soft text-brand-text">
@@ -178,14 +179,14 @@ export default function HomePage() {
           <div className="animate-hero-rise">
             <div className="inline-flex max-w-full items-start gap-2 rounded-lg border border-brand-border-strong bg-white px-3 py-2 text-sm font-semibold leading-5 text-brand-primary-dark shadow-sm">
               <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-primary" />
-              Platform jualan course, webinar, dan roadmap belajar
+              AI Career Companion untuk perjalanan karier 3-5 tahun
             </div>
             <h1 className="mt-5 max-w-3xl text-[2.35rem] font-bold leading-[1.08] text-brand-text sm:text-5xl md:text-6xl">
-              Jual course dan webinar dari satu sistem GrowTrack.
+              Pathly AI membantu kamu tahu harus belajar apa berikutnya.
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-8 text-brand-muted">
-              GrowTrack sekarang diarahkan sebagai platform edukasi: user bisa beli course,
-              daftar webinar, akses materi, mengikuti assessment, dan melihat progress belajar.
+              Mulai dari career assessment, temukan skill gap, lalu ikuti roadmap
+              personal yang membantu mahasiswa, fresh graduate, dan karyawan bergerak lebih terarah.
             </p>
 
             <div className="mt-7 grid gap-3 sm:flex sm:flex-wrap sm:items-center">
@@ -196,10 +197,10 @@ export default function HomePage() {
                 {primaryCtaLabel}
               </Link>
               <Link
-                href="#kursus"
+                href="#assessment"
                 className="inline-flex h-12 w-full items-center justify-center rounded-lg border border-brand-border-strong bg-white px-5 text-sm font-bold text-brand-primary-dark transition hover:-translate-y-1 hover:border-brand-primary hover:bg-brand-surface active:translate-y-0 active:scale-[0.98] sm:w-auto"
               >
-                Lihat Katalog
+                Lihat Assessment
               </Link>
             </div>
 
@@ -221,7 +222,7 @@ export default function HomePage() {
             <div className="relative overflow-hidden rounded-lg border border-brand-border bg-white p-2 shadow-brand-hero transition hover:-translate-y-1 hover:shadow-brand-hero-hover">
               <Image
                 src="/images/growtrack-hero-dashboard.png"
-                alt="Tampilan dashboard GrowTrack untuk course, webinar, dan progress belajar"
+                alt="Tampilan dashboard Pathly AI untuk roadmap, skill gap, dan progress karier"
                 width={1536}
                 height={1024}
                 priority
@@ -229,19 +230,19 @@ export default function HomePage() {
               />
             </div>
             <div className="absolute bottom-5 left-5 hidden max-w-[250px] rounded-lg border border-brand-border bg-white/95 p-4 shadow-brand-float backdrop-blur sm:block">
-              <p className="text-sm font-bold">Revenue flow</p>
-              <p className="mt-1 text-3xl font-black text-brand-primary">Course + Webinar</p>
-              <p className="mt-1 text-xs font-semibold text-brand-muted">checkout, akses, dan progress dalam satu dashboard</p>
+              <p className="text-sm font-bold">Career flow</p>
+              <p className="mt-1 text-3xl font-black text-brand-primary">Assess + Grow</p>
+              <p className="mt-1 text-xs font-semibold text-brand-muted">profile, skill gap, roadmap, dan progress dalam satu dashboard</p>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="kursus" className="mx-auto max-w-7xl scroll-mt-28 px-4 py-10 sm:px-5">
+      <section id="assessment" className="mx-auto max-w-7xl scroll-mt-28 px-4 py-10 sm:px-5">
         <SectionHeader
-          eyebrow="Course Catalog"
-          title="Produk course yang bisa langsung dijadikan etalase"
-          action={<Link href="/admin/products" className="text-sm font-bold text-brand-primary-dark hover:text-brand-primary">Kelola produk</Link>}
+          eyebrow="Career Assessment"
+          title="Mulai dari data diri, kemampuan, minat, dan target karier"
+          action={<Link href="/admin/master-data" className="text-sm font-bold text-brand-primary-dark hover:text-brand-primary">Kelola master data</Link>}
         />
         {loading ? (
           <CardSkeletonGrid columns="lg:grid-cols-3" />
@@ -252,13 +253,13 @@ export default function HomePage() {
             ))}
           </div>
         ) : (
-          <EmptyState title="Belum ada course aktif" body="Tambahkan produk course dari halaman Admin Products agar tampil di katalog." />
+          <EmptyState title="Belum ada rekomendasi belajar aktif" body="Tambahkan produk course dari halaman Admin Products agar bisa dipakai sebagai rekomendasi." />
         )}
       </section>
 
-      <section id="webinar" className="border-y border-brand-border bg-brand-surface">
+      <section id="skill-gap" className="border-y border-brand-border bg-brand-surface">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-5">
-          <SectionHeader eyebrow="Live Webinar" title="Jadwal webinar dengan kuota dan harga jelas" />
+          <SectionHeader eyebrow="Skill Gap Analysis" title="Rekomendasi aktivitas belajar tetap bisa ditautkan ke gap skill" />
           {loading ? (
             <CardSkeletonGrid columns="lg:grid-cols-3" />
           ) : webinarProducts.length ? (
@@ -268,13 +269,13 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
-            <EmptyState title="Belum ada webinar aktif" body="Tambahkan produk webinar dari halaman Admin Products agar jadwal tampil di sini." />
+            <EmptyState title="Belum ada aktivitas rekomendasi aktif" body="Tambahkan webinar dari halaman Admin Products jika ingin memberi rekomendasi live session." />
           )}
         </div>
       </section>
 
       <section id="kategori" className="mx-auto max-w-7xl scroll-mt-28 px-4 py-12 sm:px-5">
-        <SectionHeader eyebrow="Kategori Belajar" title="Kategori skill dari database tetap bisa jadi koleksi course" />
+        <SectionHeader eyebrow="Skill Library" title="Kategori skill menjadi fondasi pembanding kompetensi" />
         {loading ? (
           <CardSkeletonGrid />
         ) : data?.skill_categories.length ? (
@@ -290,7 +291,7 @@ export default function HomePage() {
             ))}
           </div>
         ) : (
-          <EmptyState title="Belum ada kategori skill" body="Tambahkan skill dari halaman Admin agar kategori course tampil di sini." />
+          <EmptyState title="Belum ada kategori skill" body="Tambahkan skill dari halaman Admin agar skill gap bisa dihitung." />
         )}
       </section>
 
@@ -300,7 +301,8 @@ export default function HomePage() {
             <p className="text-sm font-bold text-brand-primary">Order Flow</p>
             <h2 className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">Alur sistem jualannya sudah jelas dari katalog sampai akses.</h2>
             <p className="mt-4 text-base leading-7 text-brand-muted">
-              Versi MVP bisa dimulai dari checkout sederhana dan status pembayaran manual. Setelah itu baru naik ke payment gateway.
+              Versi MVP sebaiknya memvalidasi alur career profile, assessment, skill gap,
+              dan roadmap terlebih dahulu sebelum AI layer dan marketplace diperluas.
             </p>
             <div className="mt-5 grid gap-2 sm:grid-cols-2">
               {businessFeatures.map((feature) => (
@@ -326,10 +328,11 @@ export default function HomePage() {
 
       <section id="roadmap" className="mx-auto grid max-w-7xl scroll-mt-28 gap-8 px-4 py-12 sm:px-5 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
         <div className="max-w-3xl">
-          <p className="text-sm font-bold text-brand-primary">Learning Engine</p>
-          <h2 className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">Roadmap dan assessment lama tetap jadi nilai jual.</h2>
+          <p className="text-sm font-bold text-brand-primary">Roadmap Engine</p>
+          <h2 className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">Roadmap menjadi langkah konkret dari hasil gap.</h2>
           <p className="mt-4 text-base leading-7 text-brand-muted">
-            Course tidak cuma berisi video. Setiap produk bisa punya roadmap, assessment skill, project evidence, dan feedback mentor.
+            Setiap target karier punya skill target, modul belajar, evidence project,
+            dan feedback mentor agar progres tidak berhenti di rekomendasi umum.
           </p>
         </div>
         <div className="grid gap-4">
@@ -417,13 +420,13 @@ export default function HomePage() {
         <div className="grid gap-6 rounded-lg border border-brand-border bg-white p-6 shadow-brand-cta md:grid-cols-[1fr_auto] md:items-center">
           <div className="max-w-3xl">
             <p className="text-sm font-bold text-brand-primary">Siap launch?</p>
-            <h2 className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">Mulai dari katalog, checkout manual, lalu scale ke payment gateway.</h2>
+            <h2 className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">Mulai dari assessment, lalu lanjut ke roadmap personal.</h2>
           </div>
           <Link
             href={primaryCtaHref}
             className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-brand-primary px-5 text-sm font-bold text-white transition hover:-translate-y-1 hover:bg-brand-primary-hover active:translate-y-0 active:scale-[0.98] sm:w-auto"
           >
-            {authToken ? "Buka Dashboard" : "Register Gratis"}
+            {authToken ? "Buka Dashboard" : "Mulai Assessment"}
           </Link>
         </div>
       </section>

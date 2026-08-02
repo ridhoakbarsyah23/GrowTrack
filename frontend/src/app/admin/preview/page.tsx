@@ -27,7 +27,7 @@ export default function PreviewPage() {
     >
       <SectionHeader
         eyebrow="Preview"
-        title="Data konfigurasi GrowTrack"
+        title="Data konfigurasi Pathly AI"
         body="Pastikan career goal, target skill, pertanyaan, dan roadmap sudah lengkap."
       />
       <section className="mt-4 grid gap-4 lg:grid-cols-2">

@@ -225,7 +225,7 @@ export default function CheckoutPage() {
             <div className="mt-5 rounded-lg border border-brand-border bg-brand-surface p-4">
               <p className="font-semibold">Instruksi transfer</p>
               <p className="mt-2 text-sm leading-6 text-brand-muted">
-                Transfer ke BCA 1234567890 a.n. GrowTrack Demo, lalu isi catatan pembayaran.
+                Transfer ke BCA 1234567890 a.n. Pathly AI Demo, lalu isi catatan pembayaran.
               </p>
             </div>
           ) : (

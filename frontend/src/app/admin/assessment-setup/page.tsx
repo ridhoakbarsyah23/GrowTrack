@@ -88,10 +88,10 @@ export default function AssessmentSetupPage() {
       <SectionHeader
         eyebrow="Assessment Setup"
         title="Target skill dan pertanyaan"
-        body="Hubungkan career goal dengan skill target, lalu buat pertanyaan yang menilai skill tersebut."
+        body="Hubungkan career goal dengan skill target untuk hasil gap yang akurat. Jika belum ada target, sistem tetap memakai target sementara dari skill assessment."
       />
       <div className="mt-4 grid gap-5 lg:grid-cols-2">
-        <FormCard title={editingTarget ? "Edit Target Skill" : "Target Skill per Career Goal"} description="Tentukan target score skill untuk setiap career goal.">
+        <FormCard title={editingTarget ? "Edit Target Skill" : "Target Skill per Career Goal"} description="Tentukan target score resmi untuk tiap career goal agar skill gap lebih presisi.">
           <CancelEditButton show={Boolean(editingTarget)} onClick={() => setEditingTarget(null)} />
           <SkillTargetForm
             key={editingTarget?.id ?? "new-target"}
@@ -121,11 +121,11 @@ export default function AssessmentSetupPage() {
             id: target.id,
             title: `${target.career_goal} - ${target.skill}`,
             meta: `Target score ${target.target_score}`,
-            body: "Target ini dipakai untuk menghitung gap readiness pada dashboard user.",
+            body: "Target resmi ini dipakai untuk menggantikan target sementara dari assessment.",
             onEdit: () => setEditingTarget(target),
             onDelete: () => requestAdmin("DELETE", `/admin/skill-targets/${target.id}`),
           }))}
-          empty="Belum ada target skill."
+          empty="Belum ada target skill. Skill gap tetap berjalan memakai target sementara setelah user submit assessment."
         />
         <EditableList
           title="Questions"

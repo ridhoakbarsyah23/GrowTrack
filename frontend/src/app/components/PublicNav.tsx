@@ -17,9 +17,8 @@ export function PublicNav() {
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
   const navLinks = [
-    { href: "/#kursus", label: "Course" },
-    { href: "/#webinar", label: "Webinar" },
-    { href: "/#cara-beli", label: "Cara Beli" },
+    { href: "/#assessment", label: "Assessment" },
+    { href: "/#skill-gap", label: "Skill Gap" },
     { href: "/#roadmap", label: "Roadmap" },
     { href: "/#mentor", label: "Mentor" },
   ];
@@ -75,12 +74,12 @@ export function PublicNav() {
     <>
       <header className="sticky top-0 z-40 border-b border-brand-border bg-white/90 shadow-brand-nav backdrop-blur-xl animate-nav-drop">
         <div className="bg-gradient-to-r from-brand-primary-hover via-brand-primary to-brand-accent px-4 py-2 text-center text-xs font-semibold leading-5 text-white sm:text-sm">
-          Launch course dan webinar dengan dashboard belajar GrowTrack.
+          AI Career Companion untuk mahasiswa, fresh graduate, dan profesional.
         </div>
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-5 lg:py-4">
           <Link href="/" className="flex items-center gap-2 text-xl font-black text-brand-text transition hover:-translate-y-0.5">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-brand-accent to-brand-primary-hover text-sm text-white shadow-brand-logo-strong">G</span>
-            GrowTrack
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-brand-accent to-brand-primary-hover text-sm text-white shadow-brand-logo-strong">P</span>
+            Pathly AI
           </Link>
 
           <button

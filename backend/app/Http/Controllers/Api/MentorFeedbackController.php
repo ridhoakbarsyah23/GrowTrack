@@ -10,6 +10,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class MentorFeedbackController extends Controller
 {
+    private const LEARNER_ROLES = ['student', 'fresh_graduate', 'employee'];
+
     public function index(Request $request)
     {
         $reviewer = ApiToken::user($request);
@@ -125,7 +127,7 @@ class MentorFeedbackController extends Controller
                 'user_profiles.target_position',
                 'career_goals.title as career_goal',
             ])
-            ->whereIn('user_profiles.role', ['employee', 'fresh_graduate'])
+            ->whereIn('user_profiles.role', self::LEARNER_ROLES)
             ->orderBy('users.name')
             ->get();
     }

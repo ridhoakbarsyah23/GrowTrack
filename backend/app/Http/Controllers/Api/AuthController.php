@@ -13,6 +13,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
 {
+    private const LEARNER_ROLES = ['student', 'fresh_graduate', 'employee'];
+
     public function registerOptions()
     {
         return response()->json([
@@ -30,10 +32,14 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
-            'role' => ['required', Rule::in(['employee', 'fresh_graduate'])],
+            'role' => ['required', Rule::in(self::LEARNER_ROLES)],
             'career_goal_id' => ['required', 'exists:career_goals,id'],
+            'education' => ['nullable', 'string', 'max:255'],
             'department' => ['nullable', 'string', 'max:255'],
             'current_position' => ['required', 'string', 'max:255'],
+            'experience_summary' => ['nullable', 'string'],
+            'self_reported_skills' => ['nullable', 'string'],
+            'interests' => ['nullable', 'string'],
             'target_position' => ['required', 'string', 'max:255'],
         ]);
 
@@ -59,8 +65,12 @@ class AuthController extends Controller
             'user_id' => $userId,
             'career_goal_id' => $validated['career_goal_id'],
             'role' => $validated['role'],
+            'education' => $validated['education'] ?? null,
             'department' => $validated['department'] ?? null,
             'current_position' => $validated['current_position'],
+            'experience_summary' => $validated['experience_summary'] ?? null,
+            'self_reported_skills' => $validated['self_reported_skills'] ?? null,
+            'interests' => $validated['interests'] ?? null,
             'target_position' => $validated['target_position'],
             'status' => 'active',
             'created_at' => $now,
