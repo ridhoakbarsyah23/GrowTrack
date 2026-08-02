@@ -42,6 +42,8 @@ export default function CheckoutPage() {
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
   const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api";
+  const manualPaymentInstructions = process.env.NEXT_PUBLIC_MANUAL_PAYMENT_INSTRUCTIONS
+    ?? "Instruksi transfer resmi belum dikonfigurasi. Hubungi admin untuk detail pembayaran.";
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -225,7 +227,7 @@ export default function CheckoutPage() {
             <div className="mt-5 rounded-lg border border-brand-border bg-brand-surface p-4">
               <p className="font-semibold">Instruksi transfer</p>
               <p className="mt-2 text-sm leading-6 text-brand-muted">
-                Transfer ke BCA 1234567890 a.n. Pathly AI Demo, lalu isi catatan pembayaran.
+                {manualPaymentInstructions}
               </p>
             </div>
           ) : (
@@ -256,7 +258,7 @@ export default function CheckoutPage() {
             <form className="mt-5 grid gap-3" onSubmit={handleCheckout}>
               <textarea
                 name="payment_note"
-                placeholder={paymentMethod === "manual_transfer" ? "Catatan pembayaran, contoh: transfer dari BCA Ridho" : "Catatan opsional untuk order ini"}
+                placeholder={paymentMethod === "manual_transfer" ? "Catatan pembayaran, misal: bank pengirim dan nama pengirim" : "Catatan opsional untuk order ini"}
                 className="min-h-24 rounded-md border border-brand-border-strong bg-white px-3 py-2 text-sm outline-none focus:border-brand-primary-dark focus:ring-2 focus:ring-brand-focus"
               />
 

@@ -117,6 +117,16 @@ OPENAI_MODEL=gpt-5
 
 Jangan commit nilai `OPENAI_API_KEY`. Jika konfigurasi Laravel pernah di-cache, jalankan `php artisan config:clear` setelah mengubah `.env`.
 
+Seeder production tidak membuat data operasional dummy. Jika butuh akun admin awal, isi `.env` backend secara lokal sebelum menjalankan `php artisan migrate --seed`:
+
+```env
+SEED_ADMIN_NAME=Pathly AI Admin
+SEED_ADMIN_EMAIL=email_admin_asli
+SEED_ADMIN_PASSWORD=password_kuat_di_local_env
+```
+
+Jangan commit nilai `SEED_ADMIN_EMAIL` atau `SEED_ADMIN_PASSWORD`. Setelah admin pertama tersedia, masukkan data asli dari halaman Admin.
+
 Sebelum migrate dengan MySQL, buat database-nya:
 
 ```sql
@@ -136,6 +146,7 @@ Frontend default membaca API dari:
 
 ```env
 NEXT_PUBLIC_API_URL=http://127.0.0.1:8000/api
+NEXT_PUBLIC_MANUAL_PAYMENT_INSTRUCTIONS=
 ```
 
 Lalu buka:
@@ -194,14 +205,9 @@ http://localhost:3000/mentor-feedback
 
 ## Akun Awal
 
-Seeder default hanya membuat akun admin awal:
+Seeder hanya membuat akun admin awal jika `SEED_ADMIN_EMAIL` dan `SEED_ADMIN_PASSWORD` diisi di `.env` lokal. Jika dua variable itu kosong, `php artisan migrate --seed` tidak membuat user, produk, course, webinar, career goal, skill, assessment, atau roadmap.
 
-```text
-email: admin@growtrack.id
-password: 123456789
-```
-
-Data operasional seperti user karyawan, fresh graduate, career goal, skill, assessment, dan roadmap tidak lagi dibuat dari dummy seeder. Masukkan data asli melalui halaman `/admin`.
+Data operasional seperti user mahasiswa, fresh graduate, karyawan, career goal, skill, assessment, roadmap, course, dan webinar harus dimasukkan dari data asli melalui halaman `/admin`.
 
 Urutan input data yang disarankan:
 
