@@ -170,6 +170,52 @@ Lalu buka:
 http://localhost:3000
 ```
 
+## Menjalankan Dengan Docker
+
+Pastikan Docker Desktop sudah berjalan, lalu dari root project jalankan:
+
+```bash
+docker compose up --build
+```
+
+Service yang tersedia:
+
+```text
+Frontend: http://localhost:3003
+Backend:  http://localhost:8000
+API:      http://localhost:8000/api
+MySQL:    localhost:3307
+```
+
+Docker Compose akan menjalankan:
+
+- `frontend`: Next.js development server.
+- `backend`: Laravel development server.
+- `mysql`: database lokal untuk development.
+
+Backend container memakai `backend/.env.docker.example` sebagai `.env` khusus container, jadi file `backend/.env` lokal tidak ditimpa. Backend container otomatis menjalankan `composer install` dan `php artisan migrate --force` saat start. Jika ingin menjalankan seeder untuk membuat akun admin awal, isi variable `SEED_ADMIN_EMAIL` dan `SEED_ADMIN_PASSWORD` secara lokal di env Docker pribadi, lalu jalankan:
+
+```bash
+docker compose exec backend php artisan db:seed
+```
+
+Command Docker yang sering dipakai:
+
+```bash
+docker compose ps
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose exec backend php artisan test
+docker compose exec frontend npm run lint
+docker compose down
+```
+
+Jika ingin menghapus database lokal Docker dan mulai dari kosong:
+
+```bash
+docker compose down -v
+```
+
 Halaman utama adalah login. Setelah login berhasil, frontend masuk ke:
 
 ```text

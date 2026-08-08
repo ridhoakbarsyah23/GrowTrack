@@ -1,0 +1,82 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: growtrack-backend
+    working_dir: /var/www/html
+    ports:
+      - "8000:8000"
+    environment:
+      APP_NAME: GrowTrack
+      APP_ENV: local
+      APP_KEY: base64:WcvNDQY+Wm91c5zvt5U9W7d96c1JXd8EZoEufrWKzpc=
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: growtrack
+      DB_USERNAME: growtrack
+      DB_PASSWORD: growtrack
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      MAIL_MAILER: log
+      MIDTRANS_ENABLED: "false"
+      AI_COACH_ENABLED: "false"
+      AI_SUPPORT_ENABLED: "false"
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+    volumes:
+      - ./backend:/var/www/html
+      - ./backend/.env.docker.example:/var/www/html/.env:ro
+      - backend-vendor:/var/www/html/vendor
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: sh -c "composer install && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: growtrack-frontend
+    working_dir: /app
+    ports:
+      - "3003:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api
+      NEXT_PUBLIC_MANUAL_PAYMENT_INSTRUCTIONS: ""
+      NEXT_PUBLIC_HELPDESK_URL: mailto:support@pathly.ai
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+      - frontend-next:/app/.next
+    depends_on:
+      - backend
+    command: sh -c "npm install && npm run dev -- --hostname 0.0.0.0"
+
+  mysql:
+    image: mysql:8.4
+    container_name: growtrack-mysql
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_DATABASE: growtrack
+      MYSQL_USER: growtrack
+      MYSQL_PASSWORD: growtrack
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  backend-vendor:
+  frontend-node-modules:
+  frontend-next:
+  mysql-data:

@@ -1,0 +1,8 @@
+.env
+.phpunit.result.cache
+vendor
+node_modules
+storage/logs/*.log
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
