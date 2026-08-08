@@ -7,6 +7,8 @@ use Illuminate\Support\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ResetPasswordMail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
@@ -187,9 +189,10 @@ class AuthController extends Controller
             ],
         );
 
+        Mail::to($validated['email'])->send(new ResetPasswordMail($plainToken, $validated['email']));
+
         return response()->json([
-            'message' => 'Token reset password berhasil dibuat.',
-            'reset_token' => $plainToken,
+            'message' => 'Jika email terdaftar, instruksi reset password telah dikirim ke email tersebut.',
         ]);
     }
 
