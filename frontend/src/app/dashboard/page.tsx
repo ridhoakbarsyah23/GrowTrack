@@ -367,6 +367,12 @@ export default function Dashboard() {
               <a className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="#career-goals">Career Data</a>
             )}
             <Link className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="/assessment">Assessment</Link>
+            {isLearner ? (
+              <>
+                <Link className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="/dashboard/mock-interview">Mock Interview</Link>
+                <Link className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="/dashboard/resume-reviewer">Resume Reviewer</Link>
+              </>
+            ) : null}
             <a className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="#rekomendasi">Rekomendasi</a>
             <a className="rounded-md px-3 py-2 text-brand-muted hover:bg-brand-surface-strong" href="#reports">Reports</a>
             {isReviewer ? (

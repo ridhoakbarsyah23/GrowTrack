@@ -10,7 +10,9 @@ use App\Http\Controllers\Api\AssessmentController;
 use App\Http\Controllers\Api\CommerceController;
 use App\Http\Controllers\Api\MentorFeedbackController;
 use App\Http\Controllers\Api\MasterDataImportController;
+use App\Http\Controllers\Api\MockInterviewController;
 use App\Http\Controllers\Api\PublicSummaryController;
+use App\Http\Controllers\Api\ResumeReviewController;
 use App\Http\Controllers\Api\SupportChatController;
 use App\Http\Controllers\Api\UserJourneyController;
 use Illuminate\Support\Facades\Route;
@@ -43,6 +45,16 @@ Route::middleware('auth.api')->group(function () {
     Route::post('/mentor-feedback', [MentorFeedbackController::class, 'store']);
     Route::patch('/mentor-feedback/{feedback}', [MentorFeedbackController::class, 'update']);
     Route::delete('/mentor-feedback/{feedback}', [MentorFeedbackController::class, 'destroy']);
+    
+    Route::get('/mock-interviews', [MockInterviewController::class, 'index']);
+    Route::post('/mock-interviews', [MockInterviewController::class, 'start']);
+    Route::get('/mock-interviews/{id}', [MockInterviewController::class, 'show']);
+    Route::post('/mock-interviews/{id}/reply', [MockInterviewController::class, 'reply']);
+    Route::post('/mock-interviews/{id}/finish', [MockInterviewController::class, 'finish']);
+    
+    Route::get('/resume-reviews', [ResumeReviewController::class, 'index']);
+    Route::post('/resume-reviews', [ResumeReviewController::class, 'store']);
+    Route::get('/resume-reviews/{id}', [ResumeReviewController::class, 'show']);
 });
 
 Route::middleware(['auth.api', 'admin'])->prefix('admin')->group(function () {
